@@ -483,6 +483,9 @@ export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
   }
 
   const clearScreen = (pIdx: number, rIdx: number) => {
+    if (isPage()) {
+      return
+    }
     console.clear()
     done({
       type: "CLEAR",
