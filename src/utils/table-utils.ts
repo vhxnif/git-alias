@@ -4,27 +4,23 @@ import { terminal } from "./platform-utils"
 const tableDefaultConfig: TableUserConfig = {
   border: {
     topBody: `─`,
-    // topJoin: `┬`,
-    topJoin: ``,
+    topJoin: `┬`,
     topLeft: `╭`,
     topRight: `╮`,
 
     bottomBody: `─`,
-    // bottomJoin: `┴`,
-    bottomJoin: ``,
+    bottomJoin: `┴`,
     bottomLeft: `╰`,
     bottomRight: `╯`,
 
     bodyLeft: `│`,
     bodyRight: `│`,
-    // bodyJoin: `│`,
-    bodyJoin: ``,
+    bodyJoin: `│`,
 
     joinBody: `─`,
     joinLeft: `├`,
     joinRight: `┤`,
-    // joinJoin: `┼`,
-    joinJoin: ``,
+    joinJoin: `┼`,
   },
 }
 

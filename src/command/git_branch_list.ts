@@ -10,13 +10,20 @@ import { errParse } from "../utils/common-utils"
 function branchParse(bs: Branch[]): string[][] {
   return bs.map((it) => {
     const { isCurrent, name } = it
-    return [isCurrent ? color.yellow(name) : color.blue(name)]
+    return [
+      isCurrent ? color.yellow(name) : color.blue(name),
+      color.green(it.upstream),
+      color.maroon(it.track),
+    ]
   })
 }
 
 function tableParse(arr: string[][][]) {
   return arr.map((it) => {
-    return table([tableTitle(["Branch Name"]), ...it], tableDefaultConfig)
+    return table(
+      [tableTitle(["Branch", "Upstream", "Track"]), ...it],
+      tableDefaultConfig,
+    )
   })
 }
 

@@ -23,6 +23,8 @@ async function branchHistory(): Promise<BranchHistoryStore> {
 type Branch = {
   name: string
   isCurrent: boolean
+  upstream: string
+  track: string
 }
 type BranchListArg = {
   all?: boolean
@@ -30,10 +32,12 @@ type BranchListArg = {
 }
 
 async function branchList({ name, all }: BranchListArg): Promise<Branch[]> {
-  const localBranchList = () => `git branch -l ${name ? `'*${name}*'` : ""}`
+  const baseCmd =
+    'git branch -vv --format "%(HEAD)│%(refname:short)│%(upstream:short)│%(upstream:track)"'
+  const localBranchList = () => `${baseCmd} -l ${name ? `'*${name}*'` : ""}`
   let cmd = localBranchList()
   if (all) {
-    cmd = `git branch -a`
+    cmd = `${baseCmd} -a`
   }
   const execText = await exec(cmd)
   if (!execText) {
@@ -45,14 +49,17 @@ async function branchList({ name, all }: BranchListArg): Promise<Branch[]> {
   if (isEmpty(matched)) {
     throw Error("No Branch Matched.")
   }
-  return matched.map((it) => {
-    const isCurrent = it.startsWith("*")
-    const name = (isCurrent ? it.replace("*", "") : it).trim()
-    return {
-      isCurrent,
-      name,
-    } as Branch
-  })
+  return matched
+    .map((it) => it.split("│"))
+    .map(
+      (it) =>
+        ({
+          isCurrent: it[0] === "*",
+          name: it[1],
+          upstream: it[2],
+          track: it[3],
+        }) as Branch,
+    )
 }
 
 // ---- git switch ---- //
