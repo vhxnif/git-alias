@@ -5,15 +5,15 @@ import { branchList, type Branch } from "../action/branch-command"
 import { color, tableTitle } from "../utils/color-utils"
 import { default as page } from "../utils/page-prompt"
 import { tableDataPartation, tableDefaultConfig } from "../utils/table-utils"
-import { errParse } from "../utils/common-utils"
+import { errParse, isEmpty } from "../utils/common-utils"
 
 function branchParse(bs: Branch[]): string[][] {
   return bs.map((it) => {
-    const { isCurrent, name } = it
+    const { isCurrent, name, upstream, track } = it
+
     return [
-      isCurrent ? color.yellow(name) : color.blue(name),
-      color.green(it.upstream),
-      color.maroon(it.track),
+      `${isCurrent ? color.yellow(name) : color.blue(name)}${isEmpty(upstream) ? "" : `\n${color.green(upstream)}`}`,
+      isEmpty(track) ? "" : `\n${color.maroon(track)}`,
     ]
   })
 }
@@ -21,7 +21,7 @@ function branchParse(bs: Branch[]): string[][] {
 function tableParse(arr: string[][][]) {
   return arr.map((it) => {
     return table(
-      [tableTitle(["Branch", "Upstream", "Track"]), ...it],
+      [tableTitle(["Branch\nUpstream", "Track"]), ...it],
       tableDefaultConfig,
     )
   })
