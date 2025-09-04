@@ -37,7 +37,7 @@ function branchParse(bs: Branch[]): string[][] {
     const { isCurrent, name, upstream, track } = it
 
     return [
-      `${isCurrent ? color.yellow(name) : color.blue(name)}${isEmpty(upstream) ? "" : `\n${color.green(upstream)}`}`,
+      `${isCurrent ? color.yellow(name) : color.blue(name)}${isEmpty(upstream) ? "" : `\n${color.mauve(upstream)}`}`,
       isEmpty(track) ? "" : `\n${trackParse(track)}`,
     ]
   })
