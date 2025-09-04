@@ -9,10 +9,13 @@ import { errParse, isEmpty } from "../utils/common-utils"
 
 function trackParse(track: string) {
   // ↑ ↓
-  const { green, blue, yellow } = color
+  const { red, green, blue, yellow } = color
   const fmt = (a: string, b: string) =>
     `${yellow("↑")}·${green(a)} ${yellow("↓")}·${blue(b)}`
-  const str = track.substring(1, track.length - 2)
+  const str = track.substring(1, track.length - 1)
+  if (str === "gone") {
+    return red("✗")
+  }
   if (str.indexOf(",") !== -1) {
     // [ahead 10, behind 5]
     const [, a, , b] = str
