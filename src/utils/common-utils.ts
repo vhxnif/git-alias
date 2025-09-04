@@ -1,7 +1,9 @@
 import type { ChalkInstance } from "chalk"
 import { color } from "./color-utils"
 
-const reg: Record<string, RegExp> = {
+type RegKey = "curlyBraces" | "singleQuotes" | "doubleQuotes" | "number"
+
+const reg: Record<RegKey, RegExp> = {
   curlyBraces: /\{([^{}]*)\}/g,
   singleQuotes: /'([^']+)'/g,
   doubleQuotes: /"([^"]+)"/g,
@@ -55,4 +57,4 @@ function lines(str: string, spliter: string = "\n"): string[] {
     .filter((it) => it)
 }
 
-export { printCmdLog, printErr, errParse, isEmpty, lines, reg }
+export { type RegKey, printCmdLog, printErr, errParse, isEmpty, lines, reg }
