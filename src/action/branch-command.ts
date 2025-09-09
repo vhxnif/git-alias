@@ -8,10 +8,14 @@ import { BranchHistoryStore } from "../store/branch-history-store"
 
 // ---- branch action history ---- //
 async function branchHisDataPath() {
-  const dir = (await exec("pwd")).trim()
+  const res = await exec("git rev-parse --is-inside-work-tree")
+  if (res !== "true") {
+    throw new Error("Current Dir is Not a Git Dir")
+  }
+  const dir = (await exec("git rev-parse --absolute-git-dir")).trim()
   return `${configPath()}${path.sep}branch_his_${dir
-    .replaceAll(path.sep, "_")
-    .replaceAll(":", "")}.sqlite`
+    .replaceAll(/(\.|:)/g, "")
+    .replaceAll(/(\\|\/)/g, "_")}.sqlite`
 }
 
 async function branchHistory(): Promise<BranchHistoryStore> {
