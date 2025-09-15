@@ -95,7 +95,7 @@ async function gitBranchRebase({ name }: Branch): Promise<string> {
 type BranchActionArg = BranchListArg & {
   command: (branch: Branch) => Promise<void>
   branchSort?: (branch: Branch[]) => Branch[]
-  branchFilter?: (branch: Branch[]) => Branch[]
+  branchFilter?: (branch: Branch) => boolean
 }
 
 function branchChoices(branchs: Branch[]): Choice<Branch>[] {
@@ -117,7 +117,7 @@ async function branchAction({
 }: BranchActionArg): Promise<void> {
   const branchs = await branchList({ all, name })
     .then((it) => (branchSort ? branchSort(it) : it))
-    .then((it) => (branchFilter ? branchFilter(it) : it))
+    .then((it) => (branchFilter ? it.filter(branchFilter) : it))
   const choices = branchChoices(branchs)
   await select({
     message: "Select Branch:",
