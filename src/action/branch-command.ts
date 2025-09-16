@@ -8,10 +8,14 @@ import { BranchHistoryStore } from "../store/branch-history-store"
 
 // ---- branch action history ---- //
 async function branchHisDataPath() {
-  const dir = (await exec("pwd")).trim()
+  const res = await exec("git rev-parse --is-inside-work-tree")
+  if (res !== "true") {
+    throw new Error("Current Dir is Not a Git Dir")
+  }
+  const dir = (await exec("git rev-parse --absolute-git-dir")).trim()
   return `${configPath()}${path.sep}branch_his_${dir
-    .replaceAll(path.sep, "_")
-    .replaceAll(":", "")}.sqlite`
+    .replaceAll(/(\.|:)/g, "")
+    .replaceAll(/(\\|\/)/g, "_")}.sqlite`
 }
 
 async function branchHistory(): Promise<BranchHistoryStore> {
@@ -23,6 +27,8 @@ async function branchHistory(): Promise<BranchHistoryStore> {
 type Branch = {
   name: string
   isCurrent: boolean
+  upstream: string
+  track: string
 }
 type BranchListArg = {
   all?: boolean
@@ -30,10 +36,12 @@ type BranchListArg = {
 }
 
 async function branchList({ name, all }: BranchListArg): Promise<Branch[]> {
-  const localBranchList = () => `git branch -l ${name ? `'*${name}*'` : ""}`
+  const baseCmd =
+    'git branch -vv --format "%(HEAD)│%(refname:short)│%(upstream:short)│%(upstream:track)"'
+  const localBranchList = () => `${baseCmd} -l ${name ? `'*${name}*'` : ""}`
   let cmd = localBranchList()
   if (all) {
-    cmd = `git branch -a`
+    cmd = `${baseCmd} -a`
   }
   const execText = await exec(cmd)
   if (!execText) {
@@ -45,14 +53,17 @@ async function branchList({ name, all }: BranchListArg): Promise<Branch[]> {
   if (isEmpty(matched)) {
     throw Error("No Branch Matched.")
   }
-  return matched.map((it) => {
-    const isCurrent = it.startsWith("*")
-    const name = (isCurrent ? it.replace("*", "") : it).trim()
-    return {
-      isCurrent,
-      name,
-    } as Branch
-  })
+  return matched
+    .map((it) => it.split("│"))
+    .map(
+      (it) =>
+        ({
+          isCurrent: it[0] === "*",
+          name: it[1],
+          upstream: it[2],
+          track: it[3],
+        }) as Branch,
+    )
 }
 
 // ---- git switch ---- //
@@ -84,7 +95,7 @@ async function gitBranchRebase({ name }: Branch): Promise<string> {
 type BranchActionArg = BranchListArg & {
   command: (branch: Branch) => Promise<void>
   branchSort?: (branch: Branch[]) => Branch[]
-  branchFilter?: (branch: Branch[]) => Branch[]
+  branchFilter?: (branch: Branch) => boolean
 }
 
 function branchChoices(branchs: Branch[]): Choice<Branch>[] {
@@ -106,7 +117,7 @@ async function branchAction({
 }: BranchActionArg): Promise<void> {
   const branchs = await branchList({ all, name })
     .then((it) => (branchSort ? branchSort(it) : it))
-    .then((it) => (branchFilter ? branchFilter(it) : it))
+    .then((it) => (branchFilter ? it.filter(branchFilter) : it))
   const choices = branchChoices(branchs)
   await select({
     message: "Select Branch:",

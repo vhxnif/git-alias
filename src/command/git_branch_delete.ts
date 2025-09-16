@@ -17,7 +17,7 @@ new Command()
   .action(async (name) => {
     await branchAction({
       name,
-      branchFilter: (bs) => bs.filter((it) => !it.isCurrent),
+      branchFilter: (b) => !b.isCurrent,
       command: async (branch: Branch) => {
         bs.delete(branch.name)
         await gitBranchDelte(branch)
