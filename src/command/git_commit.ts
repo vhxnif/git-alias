@@ -6,7 +6,7 @@ import { OllamaClient } from "../llm/ollama-client"
 import { OpenAiClient } from "../llm/open-ai-client"
 import { color } from "../utils/color-utils"
 import { errParse, isEmpty, printErr } from "../utils/common-utils"
-import { Spinner } from "../utils/ora-utils"
+import { OraShow } from "../utils/ora-show"
 import { editor, exec, execPrint } from "../utils/platform-utils"
 import { gitCommitMessage, gitDiffSummary } from "../utils/prompt"
 
@@ -19,7 +19,7 @@ async function commitWithMessage() {
       messages: [client.system(gitCommitMessage), client.user(diff)],
       model: client.defaultModel(),
       f: async (str: string) => {
-        spinner.succeed(color.green.bold("Summary completed!!!"))
+        spinner.stop()
         await editor(
           str,
           async (tmpPath) => await execPrint(`git commit -F "${tmpPath}"`)
@@ -35,24 +35,25 @@ async function codeReview() {
       messages: [client.system(gitDiffSummary), client.user(diff)],
       model: client.defaultModel(),
       f: async (str: string) => {
-        spinner.succeed(color.green.bold("Success."))
+        spinner.stop()
         process.stdout.write(color.green(str))
       },
     })
   })
 }
 
-type DiffAnalysisCallback = (diff: string, spinner: Spinner) => Promise<void>
+type DiffAnalysisCallback = (diff: string, spinner: OraShow) => Promise<void>
 async function stagedDiffAnalyzing(
   callback: DiffAnalysisCallback
 ): Promise<void> {
-  const spinner = new Spinner(color.blue.bold("Extract Git Diff...")).start()
+  const spinner = new OraShow(color.blue.bold("Extract Git Diff..."))
+  spinner.start()
   const diff = await exec(`git diff --staged`)
   if (isEmpty(diff)) {
     spinner.stop()
     throw new Error(`There are not changes.`)
   }
-  spinner.changeText(color.mauve.bold("Analyzing..."))
+  spinner.show(color.mauve.bold("Analyzing..."))
   await callback(diff, spinner)
 }
 

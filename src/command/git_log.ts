@@ -5,13 +5,12 @@ import { OllamaClient } from "../llm/ollama-client"
 import { OpenAiClient } from "../llm/open-ai-client"
 import { color } from "../utils/color-utils"
 import { errParse, isEmpty, lines } from "../utils/common-utils"
+import { gitDiffParse } from "../utils/git-diff-format"
 import type { GitLog, GitLogConfig } from "../utils/git-log-prompt"
 import { default as gitLog } from "../utils/git-log-prompt"
-import { Spinner } from "../utils/ora-utils"
+import { OraShow } from "../utils/ora-show"
 import { exec } from "../utils/platform-utils"
 import { gitDiffSummary } from "../utils/prompt"
-import { gitDiffParse } from "../utils/git-diff-format"
-import { default as page } from "../utils/page-prompt"
 
 type GitLogCommand = {
   limit?: number
@@ -85,12 +84,13 @@ const client: ILLMClient =
 
 const codeReview = async (commitHash: string) => {
   const diff = await exec(`git show ${commitHash}`)
-  const spinner = new Spinner(color.blue.bold("Summary...")).start()
+  const spinner = new OraShow(color.blue.bold("Summary..."))
+  spinner.start()
   await client.stream({
     messages: [client.system(gitDiffSummary), client.user(diff)],
     model: client.defaultModel(),
     f: async (str: string) => {
-      spinner.succeed(color.green.bold("Success."))
+      spinner.stop()
       process.stdout.write(color.green(str))
     },
   })
