@@ -8,6 +8,7 @@ import { errParse } from "../utils/common-utils"
 import { Spinner } from "../utils/ora-utils"
 import { exec } from "../utils/platform-utils"
 import { gitLogSummary } from "../utils/prompt"
+import { OraShow } from "../utils/ora-show"
 
 const client: ILLMClient =
   process.env.ALIAS_TYPE === "ollama" ? new OllamaClient() : new OpenAiClient()
@@ -20,7 +21,8 @@ new Command()
   .option("-t, --to <to>", "yyyy-MM-dd")
   .action(async (option) => {
     const { author, from, to } = option
-    const spinner = new Spinner(color.blue.bold("Summary...")).start()
+    const spinner = new OraShow(color.blue.bold("Summary..."))
+    spinner.start()
     let command = `git log --format="%s\n%b"`
     if (author) {
       command = `${command} --author="${author}"`
@@ -36,7 +38,7 @@ new Command()
       messages: [client.system(gitLogSummary), client.user(commits)],
       model: client.defaultModel(),
       f: async (str: string) => {
-        spinner.succeed(color.green.bold("Success."))
+        spinner.stop()
         process.stdout.write(str)
       },
     })
