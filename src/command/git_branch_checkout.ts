@@ -13,6 +13,7 @@ import { logcmd } from "../utils/command-log-format"
 import { errParse } from "../utils/common-utils"
 import { Spinner } from "../utils/ora-utils"
 import { color } from "../utils/color-utils"
+import { OraShow } from "../utils/ora-show"
 
 const bs = await branchHistory()
 
@@ -25,7 +26,8 @@ new Command()
     if (name && !force) {
       const branch = bs.query(name).sort((a, b) => rule(b) - rule(a))[0]
       if (branch) {
-        const spinner = new Spinner("Switching branch...").start()
+        const spinner = new OraShow("Switching branch...")
+        spinner.start()
         const { name, frequency } = branch
         try {
           const result = await tryExec(`git switch ${name}`)
@@ -46,9 +48,10 @@ new Command()
     await branchAction({
       name,
       command: async (branch: Branch) => {
-        const spinner = new Spinner(
+        const spinner = new OraShow(
           `Switching to ${color.mauve.bold(branch.name)}...`
-        ).start()
+        )
+        spinner.start()
         try {
           bs.addOrUpdate(branch.name)
           const result = await gitSwitch({ branch })
