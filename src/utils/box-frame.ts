@@ -54,4 +54,8 @@ export class BoxFrame {
   private colorTitle() {
     return color[this.config.titleColor!](this.title)
   }
+
+  fileName(): string {
+    return this.title
+  }
 }
