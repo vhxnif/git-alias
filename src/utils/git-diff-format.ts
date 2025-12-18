@@ -193,8 +193,7 @@ type DiffParseColor = {
   newRowNo: ColorKey
   text: ColorKey
 }
-
-function diffShowStr(diff: DiffShow, colorName: DiffParseColor): string {
+function diffBoxShow(diff: DiffShow, colorName: DiffParseColor): BoxFrame {
   const { oldRowNo, newRowNo, text } = colorName
   const { fileName, parts } = diff
   const partStrs = parts.map((it) => {
@@ -216,14 +215,18 @@ function diffShowStr(diff: DiffShow, colorName: DiffParseColor): string {
     )
     return arr.join("\n")
   })
-  return new BoxFrame(fileName, partStrs).text()
+  return new BoxFrame(fileName, partStrs)
 }
 
 function gitDiffParse(str: string, color?: DiffParseColor): string[] {
+  return gitDiffBoxParse(str, color).map((it) => it.text())
+}
+
+function gitDiffBoxParse(str: string, color?: DiffParseColor): BoxFrame[] {
   const diff = parseGitDiffStr(str)
   const diffShow = mapToDiffShow(diff)
   return diffShow.flatMap((it) =>
-    diffShowStr(
+    diffBoxShow(
       it,
       color ?? {
         oldRowNo: "yellow",
@@ -234,4 +237,4 @@ function gitDiffParse(str: string, color?: DiffParseColor): string[] {
   )
 }
 
-export { gitDiffParse, type DiffParseColor }
+export { gitDiffParse, gitDiffBoxParse, type DiffParseColor }

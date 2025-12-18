@@ -5,12 +5,14 @@ import { OllamaClient } from "../llm/ollama-client"
 import { OpenAiClient } from "../llm/open-ai-client"
 import { color } from "../utils/color-utils"
 import { errParse, isEmpty, lines } from "../utils/common-utils"
-import { gitDiffParse } from "../utils/git-diff-format"
+import { gitDiffBoxParse, gitDiffParse } from "../utils/git-diff-format"
 import type { GitLog, GitLogConfig } from "../utils/git-log-prompt"
 import { default as gitLog } from "../utils/git-log-prompt"
+import { default as selectShow } from "../utils/select-show"
 import { OraShow } from "../utils/ora-show"
 import { exec } from "../utils/platform-utils"
 import { gitDiffSummary } from "../utils/prompt"
+import type { BoxFrame } from "../utils/box-frame"
 
 type GitLogCommand = {
   limit?: number
@@ -96,12 +98,17 @@ const codeReview = async (commitHash: string) => {
   })
 }
 
-const commitDiff = async (hash: string) => {
+const commitDiffInfo = async (hash: string) => {
   const res = await exec(`git log -1 ${hash} --pretty=%P`)
   const pHash = res.split(" ")[0]
   const diffStr = await exec(`git diff ${pHash} ${hash}`)
-  gitDiffParse(diffStr).forEach((it) => console.log(it))
-  // await page({ data: diffShows, quiteClear: true })
+  const diffBoxs = gitDiffBoxParse(diffStr)
+  const data = diffBoxs.map((it) => ({ name: it.fileName(), value: it }))
+  await selectShow({
+    message: "Select A File:",
+    data,
+    show: (v) => (v as BoxFrame).text(),
+  })
 }
 
 new Command()
@@ -127,7 +134,8 @@ new Command()
         console.log()
       }
       if (type === "COMMIT_DIFF") {
-        await commitDiff(commitHash)
+        await commitDiffInfo(commitHash)
+        console.clear()
       }
       await loopCall(config)
     }
