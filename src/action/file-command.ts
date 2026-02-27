@@ -121,10 +121,20 @@ function fileChoices(files: File[]): Choice<File>[] {
   if (isEmpty(files)) {
     throw Error(`File Missing.`)
   }
-  return files.map((it) => ({
-    name: cleanFilePath(it.filePath, terminal.column, false),
-    value: it,
-  }))
+  const isRename = (f: File) => f.stageStatus === "R"
+  const isOnlyRename = (f: File) => isRename(f) && f.workStatus === " "
+  return files
+    .filter((it) => !isOnlyRename(it))
+    .map((it) => {
+      if (isRename(it)) {
+        const [oldPath, newPath] = it.filePath.split(" -> ")
+        it.filePath = newPath ?? oldPath
+      }
+      return {
+        name: cleanFilePath(it.filePath, terminal.column, false),
+        value: it,
+      }
+    })
 }
 
 async function batchFileAction({
