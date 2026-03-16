@@ -7,7 +7,7 @@ import {
   gitSwitch,
   type Branch,
 } from "../action/branch-command"
-import { tryExec } from "../utils/platform-utils"
+import { tryExec, exec } from "../utils/platform-utils"
 import { rule } from "../store/branch-history-store"
 import { logcmd } from "../utils/command-log-format"
 import { errParse, calculateBranchMatchScore } from "../utils/common-utils"
@@ -24,7 +24,8 @@ new Command()
   .option("-f, --force")
   .action(async (name, { force }) => {
     if (name && !force) {
-      const candidates = bs.query(name)
+      const currentBranch = await exec("git branch --show-current")
+      const candidates = bs.query(name).filter(b => b.name !== currentBranch)
       if (candidates.length > 0) {
         // Calculate match score for each candidate
         const scored = candidates.map((branch) => {
