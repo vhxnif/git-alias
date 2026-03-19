@@ -1,7 +1,7 @@
-import { $, ShellError } from 'bun'
 import { accessSync, constants, mkdirSync } from 'node:fs'
 import os from 'node:os'
-import path from 'path'
+import path from 'node:path'
+import { $, type ShellError } from 'bun'
 import { printCmdLog, printErr } from './common-utils'
 
 type TerminalKey = 'column' | 'row'
@@ -12,7 +12,7 @@ const terminal: Record<TerminalKey, number> = {
 }
 
 async function editor(content: string, f: (tmp: string) => Promise<void>) {
-    const editor = Bun.env['EDITOR']
+    const editor = Bun.env.EDITOR
     if (!editor) {
         printErr(`$EDITOR is missing`)
         return
@@ -73,14 +73,14 @@ function configPath(): string | undefined {
     try {
         accessSync(pcp, constants.F_OK)
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err: unknown) {
+    } catch (_err: unknown) {
         throw Error(`platform: ${platform}, configPath missing. ${pcp}`)
     }
     try {
         accessSync(appConfig, constants.F_OK)
         return appConfig
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err: unknown) {
+    } catch (_err: unknown) {
         mkdirSync(appConfig, { recursive: true })
         return appConfig
     }
@@ -97,7 +97,7 @@ export {
     execPrint,
     exit,
     platform,
+    type TerminalKey,
     terminal,
     tryExec,
-    type TerminalKey,
 }

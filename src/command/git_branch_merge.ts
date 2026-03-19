@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
 import {
+    type Branch,
     branchAction,
     branchHistory,
     gitBranchMerge,
-    type Branch,
 } from '../action/branch-command'
-import { BranchHistory, rule } from '../store/branch-history-store'
+import { type BranchHistory, rule } from '../store/branch-history-store'
 import { errParse } from '../utils/common-utils'
 
 const bs = await branchHistory()

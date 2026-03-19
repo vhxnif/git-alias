@@ -22,7 +22,8 @@
             "semicolons": "asNeeded",
             "trailingCommas": "es5",
             "arrowParentheses": "always"
-        }
+        },
+        "globals": ["Bun"]
     },
     "linter": {
         "enabled": true,

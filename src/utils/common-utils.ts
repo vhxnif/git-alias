@@ -158,16 +158,16 @@ function calculateBranchMatchScore(
 }
 
 export {
-    type RegKey,
+    type BranchMatchResult,
+    calculateBranchMatchScore,
+    errParse,
+    getBestMatch,
+    isEmpty,
+    levenshteinDistance,
+    lines,
     printCmdLog,
     printErr,
-    errParse,
-    isEmpty,
-    lines,
+    type RegKey,
     reg,
-    levenshteinDistance,
     tokenizeBranchName,
-    getBestMatch,
-    calculateBranchMatchScore,
-    type BranchMatchResult,
 }

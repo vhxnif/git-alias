@@ -11,7 +11,9 @@ export class LinkedList<T> {
     private tail: Node<T> | null = null
 
     constructor(arr: T[]) {
-        arr.forEach((it, idx) => this.append(it, idx))
+        arr.forEach((it, idx) => {
+            this.append(it, idx)
+        })
     }
 
     private append(v: T, idx: number) {

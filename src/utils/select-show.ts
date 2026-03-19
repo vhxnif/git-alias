@@ -1,6 +1,6 @@
-import { createPrompt, useState, useKeypress } from '@inquirer/core'
-import { type Node, LinkedList } from './linked-list'
+import { createPrompt, useKeypress, useState } from '@inquirer/core'
 import { color } from './color-utils'
+import { LinkedList, type Node } from './linked-list'
 
 type Value<T> = {
     name: string

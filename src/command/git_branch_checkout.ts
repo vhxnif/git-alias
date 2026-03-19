@@ -2,18 +2,17 @@
 import type { ShellError } from 'bun'
 import { Command } from 'commander'
 import {
+    type Branch,
     branchAction,
     branchHistory,
     gitSwitch,
-    type Branch,
 } from '../action/branch-command'
-import { tryExec, exec } from '../utils/platform-utils'
 import { rule } from '../store/branch-history-store'
-import { logcmd } from '../utils/command-log-format'
-import { errParse, calculateBranchMatchScore } from '../utils/common-utils'
-import { Spinner } from '../utils/ora-utils'
 import { color } from '../utils/color-utils'
+import { logcmd } from '../utils/command-log-format'
+import { calculateBranchMatchScore, errParse } from '../utils/common-utils'
 import { OraShow } from '../utils/ora-show'
+import { exec, tryExec } from '../utils/platform-utils'
 
 const bs = await branchHistory()
 

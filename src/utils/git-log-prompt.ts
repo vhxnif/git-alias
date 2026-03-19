@@ -348,7 +348,7 @@ function statusPrompt({
     return `${key(modeStatus, `${rowIdx + 1}/${data[pageIdx].length}`)} ${help}`
 }
 
-export default createPrompt<void, GitLogConfig>((config, done) => {
+export default createPrompt<void, GitLogConfig>((config, _done) => {
     const { data, pageSize = 5 } = config
     const dataPages = pages(data, pageSize)
 

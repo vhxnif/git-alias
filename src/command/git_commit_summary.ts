@@ -5,10 +5,9 @@ import { OllamaClient } from '../llm/ollama-client'
 import { OpenAiClient } from '../llm/open-ai-client'
 import { color } from '../utils/color-utils'
 import { errParse } from '../utils/common-utils'
-import { Spinner } from '../utils/ora-utils'
+import { OraShow } from '../utils/ora-show'
 import { exec } from '../utils/platform-utils'
 import { gitLogSummary } from '../utils/prompt'
-import { OraShow } from '../utils/ora-show'
 
 const client: ILLMClient =
     process.env.ALIAS_TYPE === 'ollama'

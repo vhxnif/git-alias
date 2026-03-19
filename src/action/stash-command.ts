@@ -71,11 +71,11 @@ async function stashShow({ reflog }: GitStash): Promise<void> {
 }
 
 export {
-    stashList,
-    stashAdd,
     stashAction,
+    stashAdd,
     stashApply,
     stashDrop,
+    stashList,
     stashPop,
     stashShow,
 }

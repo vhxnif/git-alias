@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
 import {
+    type File,
     fileChanged,
     gitFileDiff,
     singleFileAction,
-    type File,
 } from '../action/file-command'
 import { errParse, isEmpty } from '../utils/common-utils'
 import { gitDiffParse } from '../utils/git-diff-format'
@@ -21,7 +21,9 @@ new Command()
                 if (isEmpty(res.trim())) {
                     throw Error(`File [${f.filePath}] Not Trace.`)
                 }
-                gitDiffParse(res).forEach((it) => console.log(it))
+                gitDiffParse(res).forEach((it) => {
+                    console.log(it)
+                })
             },
         })
     })

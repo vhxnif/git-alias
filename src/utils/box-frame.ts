@@ -1,4 +1,4 @@
-import { color, type ColorKey } from './color-utils'
+import { type ColorKey, color } from './color-utils'
 import { terminal } from './platform-utils'
 
 export type BoxFrameConfig = {

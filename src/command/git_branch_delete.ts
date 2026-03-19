@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
 import {
+    type Branch,
     branchAction,
     branchHistory,
     gitBranchDelte,
-    type Branch,
 } from '../action/branch-command'
 import { errParse } from '../utils/common-utils'
 

@@ -1,8 +1,8 @@
 import { checkbox, select } from '@inquirer/prompts'
 import { isEmpty } from '../utils/common-utils'
+import { cleanFilePath } from '../utils/git-format'
 import type { Choice } from '../utils/inquirer-utils'
 import { exec, terminal } from '../utils/platform-utils'
-import { cleanFilePath } from '../utils/git-format'
 
 async function pwd(): Promise<string> {
     return await exec('pwd')
@@ -176,17 +176,17 @@ async function singleFileAction({
 }
 
 export {
-    type File,
-    pwd,
-    fileStatus,
-    fileIgnore,
-    fileUntracked,
-    fileChanged,
-    fileStaged,
     batchFileAction,
-    singleFileAction,
+    type File,
+    fileChanged,
+    fileIgnore,
+    fileStaged,
+    fileStatus,
+    fileUntracked,
     gitFileAdd,
     gitFileCheckout,
     gitFileDiff,
     gitFileRestore,
+    pwd,
+    singleFileAction,
 }

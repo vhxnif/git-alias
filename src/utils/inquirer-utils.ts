@@ -8,4 +8,4 @@ type Choice<Value> = {
     type?: never
 }
 
-export { type Choice }
+export type { Choice }

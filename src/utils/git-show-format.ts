@@ -1,13 +1,13 @@
 import type { ChalkInstance } from 'chalk'
 import { display } from './color-utils'
+import { isEmpty } from './common-utils'
 import {
     cleanFilePath,
+    formatColor,
     renderFileChange,
     renderSummaryLine,
-    formatColor,
 } from './git-format'
 import { terminal } from './platform-utils'
-import { isEmpty } from './common-utils'
 
 type GitShowFormatConfig = {
     filePathWidth?: number
@@ -172,4 +172,4 @@ function formatGitTagShow(
     )
 }
 
-export { type GitShowFormatConfig, formatGitShow, formatGitTagShow }
+export { formatGitShow, formatGitTagShow, type GitShowFormatConfig }

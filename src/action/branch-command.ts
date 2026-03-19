@@ -1,10 +1,10 @@
-import path from 'path'
-import { select } from '@inquirer/prompts'
-import { configPath, exec } from '../utils/platform-utils'
-import type { Choice } from '../utils/inquirer-utils'
-import { isEmpty } from '../utils/common-utils'
 import Database from 'bun:sqlite'
+import path from 'node:path'
+import { select } from '@inquirer/prompts'
 import { BranchHistoryStore } from '../store/branch-history-store'
+import { isEmpty } from '../utils/common-utils'
+import type { Choice } from '../utils/inquirer-utils'
+import { configPath, exec } from '../utils/platform-utils'
 
 // ---- branch action history ---- //
 async function branchHisDataPath() {
@@ -127,12 +127,12 @@ async function branchAction({
 
 export {
     type Branch,
-    type GitSwitchArg,
+    branchAction,
     branchHistory,
     branchList,
-    branchAction,
-    gitSwitch,
+    type GitSwitchArg,
     gitBranchDelte,
     gitBranchMerge,
     gitBranchRebase,
+    gitSwitch,
 }

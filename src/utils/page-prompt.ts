@@ -1,9 +1,9 @@
 import {
     createPrompt,
-    useState,
-    useKeypress,
     makeTheme,
     type Theme,
+    useKeypress,
+    useState,
 } from '@inquirer/core'
 import type { PartialDeep } from '@inquirer/type'
 

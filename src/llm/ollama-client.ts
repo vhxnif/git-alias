@@ -1,5 +1,5 @@
-import type { ILLMClient, ILLMRequest, LLMMessage, LLMRole } from './llm-types'
 import { Ollama } from 'ollama'
+import type { ILLMClient, ILLMRequest, LLMMessage, LLMRole } from './llm-types'
 
 export class OllamaClient implements ILLMClient {
     ollama: Ollama

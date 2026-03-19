@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 import { select } from '@inquirer/prompts'
 import { Command } from 'commander'
-import { errParse, isEmpty, printErr } from '../utils/common-utils'
-import { exec } from '../utils/platform-utils'
-import { formatGitTagShow } from '../utils/git-show-format'
 import { BoxFrame } from '../utils/box-frame'
+import { errParse, isEmpty, printErr } from '../utils/common-utils'
+import { formatGitTagShow } from '../utils/git-show-format'
+import { exec } from '../utils/platform-utils'
 
 new Command()
     .name('gts')

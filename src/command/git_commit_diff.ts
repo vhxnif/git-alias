@@ -24,7 +24,7 @@ function logCommand(
     if (to) {
         command = `${command} --before="${to}"`
     }
-    if (initCommand == command) {
+    if (initCommand === command) {
         command = `${command} -n ${limit}`
     }
     return command
@@ -64,11 +64,12 @@ new Command()
             let f = false
             return choices.find((it) => {
                 if (f) {
-                    return f
+                    return true
                 }
                 if (it.value === h) {
                     f = true
                 }
+                return false
             })?.value
         }
 

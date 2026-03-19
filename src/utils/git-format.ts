@@ -1,7 +1,7 @@
-import type { ChalkInstance } from 'chalk'
-import { reg } from './common-utils'
-import { color } from './color-utils'
 import { stringWidth } from 'bun'
+import type { ChalkInstance } from 'chalk'
+import { color } from './color-utils'
+import { reg } from './common-utils'
 
 type GitFormatColorKey =
     | 'key'
@@ -128,8 +128,8 @@ function renderSummaryLine(line: string) {
 
 export {
     cleanFilePath,
+    formatColor,
     isSummmaryLine,
     renderFileChange,
     renderSummaryLine,
-    formatColor,
 }

@@ -56,7 +56,7 @@ function printUpdateFastForwardLog(strs: string[]): void {
             ..._fastForwardBodyFileDetailFormat(deatilList),
         ] as string[]
     ).join('\n')
-    return console.log(str)
+    console.log(str)
 }
 
 /**

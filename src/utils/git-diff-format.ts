@@ -1,8 +1,8 @@
-import type { ColorKey } from './color-utils'
-import { terminal } from './platform-utils'
-import { color } from './color-utils'
 import { BoxFrame } from './box-frame'
+import type { ColorKey } from './color-utils'
+import { color } from './color-utils'
 import { cleanFilePath } from './git-format'
+import { terminal } from './platform-utils'
 
 // git diff str parse
 
@@ -208,11 +208,11 @@ function diffBoxShow(diff: DiffShow, colorName: DiffParseColor): BoxFrame {
             }
             return color[text]
         }
-        lines.forEach((l) =>
+        lines.forEach((l) => {
             arr.push(
                 `${color[oldRowNo](l.oldRowNo)} ${color[newRowNo](l.newRowNo)} ${lineColor(l)(l.line)}`
             )
-        )
+        })
         return arr.join('\n')
     })
     return new BoxFrame(fileName, partStrs)
@@ -237,4 +237,4 @@ function gitDiffBoxParse(str: string, color?: DiffParseColor): BoxFrame[] {
     )
 }
 
-export { gitDiffParse, gitDiffBoxParse, type DiffParseColor }
+export { type DiffParseColor, gitDiffBoxParse, gitDiffParse }
