@@ -72,7 +72,7 @@ export const color: Record<ColorKey, ChalkInstance> = new Proxy(
             const theme = getTheme()
             return hex(theme.palette[paletteKey])
         },
-    },
+    }
 )
 
 export const colorHex: Record<ColorKey, string> = new Proxy(
@@ -86,7 +86,7 @@ export const colorHex: Record<ColorKey, string> = new Proxy(
             const theme = getTheme()
             return theme.palette[paletteKey]
         },
-    },
+    }
 )
 
 export const display = {
