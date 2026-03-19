@@ -3,17 +3,21 @@ import {
   useEffect,
   useKeypress,
   useMemo,
-  useRef,
   useState,
 } from "@inquirer/core"
 import type { ChalkInstance } from "chalk"
 import clipboard from "clipboardy"
-import { table, type TableUserConfig } from "table"
+import { type TableUserConfig, table } from "table"
+import type { ILLMClient } from "../llm/llm-types"
+import { OllamaClient } from "../llm/ollama-client"
+import { OpenAiClient } from "../llm/open-ai-client"
 import { color, colorHex, display, tableTitle } from "./color-utils"
 import { isEmpty } from "./common-utils"
-import { exec, exit, terminal } from "./platform-utils"
-import { tableColumnWidth, tableDefaultConfig } from "./table-utils"
+import { gitDiffBoxParse } from "./git-diff-format"
 import { formatGitShow } from "./git-show-format"
+import { exec, exit, terminal } from "./platform-utils"
+import { gitDiffSummary } from "./prompt"
+import { tableColumnWidth, tableDefaultConfig } from "./table-utils"
 
 export type GitLog = {
   hash: string
@@ -33,15 +37,24 @@ export type GitLogKey = keyof GitLog
 export type GitLogConfig = {
   data: GitLog[]
   pageSize?: number
-  pageIndex?: number
-  rowIndex?: number
 }
 
-export type GitLogReturnType = "AI_SUMMARY" | "COMMIT_DIFF" | "CLEAR"
+type ViewMode = "LIST" | "DETAIL" | "DIFF" | "AI_SUMMARY"
 
-export type GitLogReturn = {
-  config: GitLogConfig
-  type: GitLogReturnType
+type DiffState = {
+  files: DiffFile[]
+  selectedIndex: number
+  parentHash: string
+}
+
+type DiffFile = {
+  name: string
+  content: string
+}
+
+type LogDetail = {
+  showDetail: string
+  branchDetail: string
 }
 
 function gitLogValueFilter(logs: GitLog[], columns: GitLogKey[]): string[] {
@@ -103,11 +116,10 @@ function gitLogToTableData(
     const refStr = ref.map(refParse).join("\n")
     const selectedMark = () => {
       if (selectedIdx === idx) {
-        return `${
-          yanked
-            ? surface2.bold.bgHex(colorHex.sky)(hash)
-            : surface2.bold.bgHex(colorHex.yellow)(hash)
-        }\n${mauve(date)}`
+        return `${yanked
+          ? surface2.bold.bgHex(colorHex.sky)(hash)
+          : surface2.bold.bgHex(colorHex.yellow)(hash)
+          }\n${mauve(date)}`
       }
       return `${yellow(hash)}\n${mauve(date)}`
     }
@@ -168,10 +180,6 @@ function cardTableConfig() {
 
 // --- Refactored Detail Formatting End ---
 
-type LogDetail = {
-  showDetail: string
-  branchDetail: string
-}
 function rowCard(
   detailInfo: LogDetail | undefined,
   branchShow: boolean = false,
@@ -339,18 +347,43 @@ function statusPrompt({
   return `${key(modeStatus, `${rowIdx + 1}/${data[pageIdx].length}`)} ${help}`
 }
 
-export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
-  const { data, pageIndex, rowIndex, pageSize } = config
-  const dataPages = pages(data, pageSize ?? 5)
-  const [mode, setMode] = useState<Mode>(rowIndex !== void 0 ? "ROW" : "PAG")
-  const [rowIdx, setRowIdx] = useState<number>(rowIndex ?? -1)
-  const [pageIdx, setPageIdx] = useState<number>(pageIndex ?? 0)
+export default createPrompt<void, GitLogConfig>((config, done) => {
+  const { data, pageSize = 5 } = config
+  const dataPages = pages(data, pageSize)
+
+  const client: ILLMClient =
+    process.env.GIT_ALIAS === "ollama" ? new OllamaClient() : new OpenAiClient()
+
+  const [viewStack, setViewStack] = useState<ViewMode[]>(["LIST"])
+  const [mode, setMode] = useState<Mode>("PAG")
+  const [pageIdx, setPageIdx] = useState<number>(0)
+  const [rowIdx, setRowIdx] = useState<number>(-1)
   const [show, setShow] = useState<string>(
-    pageTable({ logs: dataPages[pageIdx], selectedIdx: rowIdx }),
+    pageTable({ logs: dataPages[0], selectedIdx: -1 }),
   )
-  const [summary, setSummary] = useState(false)
-  const [diffShow, setDiffShow] = useState(false)
   const [keyBar, setKeyBar] = useState<boolean>(false)
+
+  const [detailInfo, setDetailInfo] = useState<LogDetail | null>(null)
+  const [showBranch, setShowBranch] = useState<boolean>(false)
+  const [diffState, setDiffState] = useState<DiffState | null>(null)
+  const [aiSummaryStream, setAiSummaryStream] = useState<string>("")
+
+  const currentView = viewStack[viewStack.length - 1]
+  const commitHash = dataPages[pageIdx]?.[rowIdx]?.commitHash
+
+  const pushView = (view: ViewMode) => setViewStack([...viewStack, view])
+  const popView = () => {
+    if (viewStack.length > 1) {
+      setViewStack(viewStack.slice(0, -1))
+      setDiffState(null)
+      setDetailInfo(null)
+      setShowBranch(false)
+      setAiSummaryStream("")
+    } else {
+      exit()
+    }
+  }
+
   const refreshTableShow = (pIdx: number, rIdx: number, yanked?: boolean) => {
     setShow(
       pageTable({
@@ -362,8 +395,6 @@ export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
   }
 
   const logDetailInfo = useMemo<Promise<LogDetail | undefined>>(async () => {
-    const commitHash: string | undefined =
-      dataPages[pageIdx]?.[rowIdx]?.commitHash
     if (commitHash) {
       return {
         showDetail: await exec(`git show --stat ${commitHash}`),
@@ -373,12 +404,8 @@ export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
     return void 0
   }, [pageIdx, rowIdx])
 
-  const cardShow = useRef(false)
-  const branchShow = useRef(false)
-
   useEffect(() => {
-    cardShow.current = false
-    branchShow.current = false
+    setShowBranch(false)
   }, [pageIdx, rowIdx])
 
   const changeMode = (m: Mode) => {
@@ -419,85 +446,6 @@ export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
     refreshTableShow(pIdx, rowNextIdx(pIdx, rIdx))
   }
 
-  const logDetail = async (pIdx: number, rIdx: number) => {
-    if (isPage()) {
-      return
-    }
-    if (!cardShow.current) {
-      setShow(rowCard(await logDetailInfo))
-    } else {
-      refreshTableShow(pIdx, rIdx)
-    }
-    cardShow.current = !cardShow.current
-  }
-
-  const logDetailWithBranch = async () => {
-    if (isPage()) {
-      return
-    }
-    if (!cardShow.current) {
-      return
-    }
-    setShow(rowCard(await logDetailInfo, !branchShow.current))
-    branchShow.current = !branchShow.current
-  }
-
-  const logSummaryShow = (pIdx: number, rIdx: number) => {
-    if (isPage()) {
-      return
-    }
-    setSummary(true)
-    const { blue, yellow, mauve } = color
-    const { author, commitHash, humanDate } = dataPages[pIdx][rIdx]
-    setShow(`${blue.bold(author)} (${mauve(humanDate)}) ${yellow(commitHash)}`)
-    console.clear()
-    done({
-      type: "AI_SUMMARY",
-      config: {
-        ...config,
-        pageIndex: pIdx,
-        rowIndex: rIdx,
-        pageSize: pageSize ?? 5,
-      } as GitLogConfig,
-    })
-  }
-
-  const commitDiffShow = (pIdx: number, rIdx: number) => {
-    if (isPage()) {
-      return
-    }
-    setDiffShow(true)
-    const { blue, yellow, mauve } = color
-    const { author, commitHash, humanDate } = dataPages[pIdx][rIdx]
-    setShow(`${blue.bold(author)} (${mauve(humanDate)}) ${yellow(commitHash)}`)
-    console.clear()
-    done({
-      type: "COMMIT_DIFF",
-      config: {
-        ...config,
-        pageIndex: pIdx,
-        rowIndex: rIdx,
-        pageSize: pageSize ?? 5,
-      } as GitLogConfig,
-    })
-  }
-
-  const clearScreen = (pIdx: number, rIdx: number) => {
-    if (isPage()) {
-      return
-    }
-    console.clear()
-    done({
-      type: "CLEAR",
-      config: {
-        ...config,
-        pageIndex: pIdx,
-        rowIndex: rIdx,
-        pageSize: pageSize ?? 5,
-      } as GitLogConfig,
-    })
-  }
-
   const yankHash = (pIdx: number, rIdx: number) => {
     if (isPage()) {
       return
@@ -507,8 +455,58 @@ export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
     refreshTableShow(pIdx, rIdx, true)
   }
 
-  useKeypress(async (key, rl) => {
-    rl.clearLine(0)
+  const enterDetailView = async () => {
+    if (isPage()) return
+    const info = await logDetailInfo
+    if (info) {
+      setDetailInfo(info)
+      pushView("DETAIL")
+    }
+  }
+
+  const toggleBranchInDetail = async () => {
+    if (currentView !== "DETAIL") return
+    setShowBranch(!showBranch)
+  }
+
+  const enterDiffView = async () => {
+    if (isPage()) return
+    if (!commitHash) return
+
+    const res = await exec(`git log -1 ${commitHash} --pretty=%P`)
+    const pHash = res.split(" ")[0]
+    const diffStr = await exec(`git diff ${pHash} ${commitHash}`)
+    const diffBoxs = gitDiffBoxParse(diffStr)
+
+    if (diffBoxs.length === 0) return
+
+    setDiffState({
+      files: diffBoxs.map((b) => ({ name: b.fileName(), content: b.text() })),
+      selectedIndex: 0,
+      parentHash: pHash,
+    })
+    pushView("DIFF")
+  }
+
+  const enterAiSummary = async () => {
+    if (isPage()) return
+    if (!commitHash) return
+
+    pushView("AI_SUMMARY")
+
+    const diff = await exec(`git show ${commitHash}`)
+    let current = ""
+    await client.stream({
+      messages: [client.system(gitDiffSummary), client.user(diff)],
+      model: client.defaultModel(),
+      f: async (str: string) => {
+        current = current + str
+        setAiSummaryStream(current)
+      },
+    })
+  }
+
+  const handleListKey = (key: { name: string }) => {
     switch (key.name) {
       case "space":
         changeMode(mode)
@@ -523,28 +521,86 @@ export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
         prev(pageIdx, rowIdx)
         break
       case "return":
-        await logDetail(pageIdx, rowIdx)
+        enterDetailView()
         break
-      case "b":
-        await logDetailWithBranch()
+      case "d":
+        enterDiffView()
+        break
+      case "s":
+        enterAiSummary()
         break
       case "y":
         yankHash(pageIdx, rowIdx)
-        break
-      case "s":
-        logSummaryShow(pageIdx, rowIdx)
-        break
-      case "d":
-        commitDiffShow(pageIdx, rowIdx)
-        break
-      case "c":
-        clearScreen(pageIdx, rowIdx)
         break
       case "q":
         exit()
         break
     }
+  }
+
+  const handleDetailKey = (key: { name: string }) => {
+    switch (key.name) {
+      case "b":
+        toggleBranchInDetail()
+        break
+      case "q":
+      case "return":
+        popView()
+        break
+    }
+  }
+
+  const handleDiffKey = (key: { name: string }) => {
+    if (!diffState) return
+    switch (key.name) {
+      case "j":
+        if (diffState.selectedIndex < diffState.files.length - 1) {
+          setDiffState({
+            ...diffState,
+            selectedIndex: diffState.selectedIndex + 1,
+          })
+        }
+        break
+      case "k":
+        if (diffState.selectedIndex > 0) {
+          setDiffState({
+            ...diffState,
+            selectedIndex: diffState.selectedIndex - 1,
+          })
+        }
+        break
+      case "q":
+        popView()
+        break
+    }
+  }
+
+  const handleSummaryKey = (key: { name: string }) => {
+    switch (key.name) {
+      case "q":
+        popView()
+        break
+    }
+  }
+
+  useKeypress(async (key, rl) => {
+    rl.clearLine(0)
+    switch (currentView) {
+      case "LIST":
+        handleListKey(key)
+        break
+      case "DETAIL":
+        handleDetailKey(key)
+        break
+      case "DIFF":
+        handleDiffKey(key)
+        break
+      case "AI_SUMMARY":
+        handleSummaryKey(key)
+        break
+    }
   })
+
   const status = () => {
     const s = statusPrompt({
       mode,
@@ -552,13 +608,51 @@ export default createPrompt<GitLogReturn, GitLogConfig>((config, done) => {
       rowIdx,
       data: dataPages,
     })
-    if (keyBar) {
+    if (keyBar && currentView === "LIST") {
       return `${s}${_renderKeyHelp(normalKeyMap(), rowKeyMap())}`
     }
     return s
   }
-  if (summary || diffShow) {
-    return show
+
+  if (currentView === "LIST") {
+    return `${show}${status()}`
   }
-  return `${show}${status()}`
+
+  if (currentView === "DETAIL" && detailInfo) {
+    return `${rowCard(detailInfo, showBranch)}\n${color.teal("<b>")} ${color.blue("toggle branch")} ${color.teal("<q/return>")} ${color.blue("back")}`
+  }
+
+  if (currentView === "DIFF" && diffState) {
+    const { files, selectedIndex } = diffState
+    const fileList = files
+      .map((f, i) =>
+        i === selectedIndex
+          ? color.yellow(`▶ ${f.name}`)
+          : color.overlay1(`  ${f.name}`),
+      )
+      .join("\n")
+    const selectedFile = files[selectedIndex]
+    const { blue, yellow, mauve } = color
+    const { author, humanDate } = dataPages[pageIdx][rowIdx]
+    return `${blue.bold(author)} (${mauve(humanDate)}) ${yellow(commitHash)}
+
+${color.teal.bold("Files:")}
+${fileList}
+
+${selectedFile.content}
+
+${color.teal("<j/k>")} ${color.blue("switch file")} ${color.teal("<q>")} ${color.blue("back")}`
+  }
+
+  if (currentView === "AI_SUMMARY") {
+    const { blue, yellow, mauve } = color
+    const { author, humanDate } = dataPages[pageIdx][rowIdx]
+    return `${blue.bold(author)} (${mauve(humanDate)}) ${yellow(commitHash)}
+
+${aiSummaryStream}
+
+${color.teal("<q>")} ${color.blue("back")}`
+  }
+
+  return ""
 })
