@@ -8,6 +8,8 @@ export {
   box,
   display,
   catppuccinMocha,
+  getThemeByName,
+  listThemes,
 } from "./theme"
 
 export type {

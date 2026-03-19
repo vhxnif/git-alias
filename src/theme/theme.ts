@@ -1,5 +1,4 @@
 import chalk, { type ChalkInstance } from "chalk"
-import { catppuccinMocha } from "./catppuccin"
 import type {
   BoxChalk,
   BoxColorKey,
@@ -15,8 +14,25 @@ import type {
   SemanticColor,
   Theme,
 } from "./theme-types"
+import { catppuccinMocha, getThemeByName, listThemes } from "./themes"
 
-let currentTheme: Theme = catppuccinMocha
+function getInitialTheme(): Theme {
+  const themeName = process.env.ALIAS_THEME
+  if (themeName) {
+    const theme = getThemeByName(themeName)
+    if (theme) {
+      return theme
+    }
+    console.warn(
+      `[warn] Unknown theme "${themeName}". Available themes: ${listThemes()
+        .map((t) => t.name)
+        .join(", ")}`,
+    )
+  }
+  return catppuccinMocha
+}
+
+let currentTheme: Theme = getInitialTheme()
 
 function hex(color: string): ChalkInstance {
   return chalk.hex(color)
@@ -129,4 +145,4 @@ export const display: DisplayChalk = new Proxy({} as DisplayChalk, {
   },
 })
 
-export { catppuccinMocha }
+export { catppuccinMocha, getThemeByName, listThemes }

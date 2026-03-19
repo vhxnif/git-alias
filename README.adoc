@@ -33,6 +33,31 @@ export ALIAS_DEFAULT_MODEL = <default model>
 export ALIAS_OLLAMA_BASE_URL = <ollama url>
 export ALIAS_OLLAMA_DEFAULT_MODEL = <default model>
 export ALIAS_TYPE = 'ollama'
+# theme
+export ALIAS_THEME = 'catppuccin-mocha'
+----
+
+== Theme Support
+
+Configure color theme via environment variable `ALIAS_THEME`.
+
+.Available Themes:
+[cols="1,3"]
+|===
+|Theme Name|Description
+
+|catppuccin-mocha|Catppuccin Mocha (default) - Warm pastel colors
+|rose-pine|Rose Pine - Soft pink/purple tones
+|tokyonight|Tokyo Night - Deep blue/purple tones
+|kanagawa|Kanagawa - Japanese ink blue, red, gold
+|dracula|Dracula - Classic dark theme with pink, green, cyan, purple
+|===
+
+.Example:
+[source, bash]
+----
+# Use Tokyo Night theme
+export ALIAS_THEME='tokyonight'
 ----
 
 == Git Alias
