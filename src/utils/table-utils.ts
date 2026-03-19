@@ -35,7 +35,8 @@ const tableConfig = ({
 }): TableUserConfig => {
   const sum = (numbers: number[]) => numbers.reduce((sum, it) => (sum += it), 0)
   const allPart = sum(cols)
-  const curCol = terminal.column - 4 * cols.length
+  const termCol = terminal.column || 80
+  const curCol = termCol - 4 * cols.length
   const colNum = curCol > maxColumn ? maxColumn : curCol
   const calWidth = cols.map((it) => Math.floor(colNum * (it / allPart)))
   return {
@@ -61,7 +62,7 @@ function tableDataPartation<T>(data: T[], pageSize: number = 5): T[][] {
   }, [] as T[][])
 }
 
-const tableColumnWidth = (terminal.column > 80 ? 80 : terminal.column) - 12
+const tableColumnWidth = ((terminal.column || 80) > 80 ? 80 : (terminal.column || 80)) - 12
 
 export {
   tableConfig,

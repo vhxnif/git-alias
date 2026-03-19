@@ -1,18 +1,9 @@
 #!/usr/bin/env bun
 import { Command } from "commander"
-import type { ILLMClient } from "../llm/llm-types"
-import { OllamaClient } from "../llm/ollama-client"
-import { OpenAiClient } from "../llm/open-ai-client"
-import { color } from "../utils/color-utils"
 import { errParse, isEmpty, lines } from "../utils/common-utils"
-import { gitDiffBoxParse, gitDiffParse } from "../utils/git-diff-format"
-import type { GitLog, GitLogConfig } from "../utils/git-log-prompt"
+import type { GitLog } from "../utils/git-log-prompt"
 import { default as gitLog } from "../utils/git-log-prompt"
-import { default as selectShow } from "../utils/select-show"
-import { OraShow } from "../utils/ora-show"
 import { exec } from "../utils/platform-utils"
-import { gitDiffSummary } from "../utils/prompt"
-import type { BoxFrame } from "../utils/box-frame"
 
 type GitLogCommand = {
   limit?: number
@@ -26,9 +17,8 @@ const logItemEnd = "┼"
 
 function logCommand({ limit, author, from, to }: GitLogCommand) {
   const format: string[] = ["%h", "%an", "%s", "%ad", "%D", "%b", "%H", "%cr"]
-  let command = `git log --oneline --format="${
-    format.join(logItemJoin) + logItemEnd
-  }" --date=format:"%Y-%m-%d %H:%M:%S"`
+  let command = `git log --oneline --format="${format.join(logItemJoin) + logItemEnd
+    }" --date=format:"%Y-%m-%d %H:%M:%S"`
   const initCommand = command
   if (limit) {
     command = `${command} -n ${limit}`
@@ -42,7 +32,7 @@ function logCommand({ limit, author, from, to }: GitLogCommand) {
   if (to) {
     command = `${command} --before="${to}"`
   }
-  if (initCommand == command) {
+  if (initCommand === command) {
     command = `${command} -n ${limit}`
   }
   return command
@@ -81,36 +71,6 @@ async function gitLogs(cmd: GitLogCommand): Promise<GitLog[]> {
   return await exec(logCommand(cmd)).then(sp).then(mapToGitLog)
 }
 
-const client: ILLMClient =
-  process.env.GIT_ALIAS === "ollama" ? new OllamaClient() : new OpenAiClient()
-
-const codeReview = async (commitHash: string) => {
-  const diff = await exec(`git show ${commitHash}`)
-  const spinner = new OraShow(color.blue.bold("Summary..."))
-  spinner.start()
-  await client.stream({
-    messages: [client.system(gitDiffSummary), client.user(diff)],
-    model: client.defaultModel(),
-    f: async (str: string) => {
-      spinner.stop()
-      process.stdout.write(color.green(str))
-    },
-  })
-}
-
-const commitDiffInfo = async (hash: string) => {
-  const res = await exec(`git log -1 ${hash} --pretty=%P`)
-  const pHash = res.split(" ")[0]
-  const diffStr = await exec(`git diff ${pHash} ${hash}`)
-  const diffBoxs = gitDiffBoxParse(diffStr)
-  const data = diffBoxs.map((it) => ({ name: it.fileName(), value: it }))
-  await selectShow({
-    message: "Select A File:",
-    data,
-    show: (v) => (v as BoxFrame).text(),
-  })
-}
-
 new Command()
   .name("gl")
   .description("git log -n, defaule limit is 100")
@@ -125,21 +85,7 @@ new Command()
     if (isEmpty(logs)) {
       throw Error(`Git Logs Missing.`)
     }
-    const loopCall = async (cf: GitLogConfig) => {
-      const { type, config } = await gitLog(cf)
-      const { data, pageIndex, rowIndex, pageSize } = config
-      const { commitHash } = data[pageIndex! * pageSize! + rowIndex!]
-      if (type === "AI_SUMMARY") {
-        await codeReview(commitHash)
-        console.log()
-      }
-      if (type === "COMMIT_DIFF") {
-        await commitDiffInfo(commitHash)
-        console.clear()
-      }
-      await loopCall(config)
-    }
-    await loopCall({ data: logs })
+    await gitLog({ data: logs })
   })
   .parseAsync()
   .catch(errParse)
