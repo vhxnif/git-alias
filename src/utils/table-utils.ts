@@ -1,73 +1,62 @@
-import { table, type TableUserConfig } from "table"
-import { terminal } from "./platform-utils"
+import { table } from '../table'
+import type { TableAlignment, TableConfig } from '../table/table-port'
 
-const tableDefaultConfig: TableUserConfig = {
-  border: {
-    topBody: `─`,
-    topJoin: `┬`,
-    topLeft: `╭`,
-    topRight: `╮`,
-
-    bottomBody: `─`,
-    bottomJoin: `┴`,
-    bottomLeft: `╰`,
-    bottomRight: `╯`,
-
-    bodyLeft: `│`,
-    bodyRight: `│`,
-    bodyJoin: `│`,
-
-    joinBody: `─`,
-    joinLeft: `├`,
-    joinRight: `┤`,
-    joinJoin: `┼`,
-  },
-}
-
+/**
+ * 表格配置构建函数
+ * 根据列比例和终端宽度自动计算列宽
+ * @deprecated 推荐使用 table.autoLayout()
+ */
 const tableConfig = ({
-  cols,
-  alignment,
-  maxColumn = 80,
+    cols,
+    alignment,
+    maxColumn,
 }: {
-  cols: number[]
-  alignment?: "left" | "center" | "justify" | "right"
-  maxColumn?: number
-}): TableUserConfig => {
-  const sum = (numbers: number[]) => numbers.reduce((sum, it) => (sum += it), 0)
-  const allPart = sum(cols)
-  const termCol = terminal.column || 80
-  const curCol = termCol - 4 * cols.length
-  const colNum = curCol > maxColumn ? maxColumn : curCol
-  const calWidth = cols.map((it) => Math.floor(colNum * (it / allPart)))
-  return {
-    ...tableDefaultConfig,
-    columns: calWidth.map((it) => ({
-      alignment: alignment ?? "justify",
-      width: it,
-    })),
-  }
-}
-
-const printTable = (data: unknown[][], userConfig?: TableUserConfig) =>
-  console.log(table(data, userConfig))
-
-function tableDataPartation<T>(data: T[], pageSize: number = 5): T[][] {
-  return data.reduce((result, item, index) => {
-    const chunkIndex = Math.floor(index / pageSize)
-    if (!result[chunkIndex]) {
-      result[chunkIndex] = []
+    cols: number[]
+    alignment?: TableAlignment
+    maxColumn?: number
+}): TableConfig => {
+    const config = table.autoLayout({ columnRatios: cols, alignment })
+    // 如果指定了 maxColumn，需要重新计算列宽
+    if (maxColumn !== undefined && config.columns) {
+        const sum = cols.reduce((acc, it) => acc + it, 0)
+        const colNum = maxColumn - 4 * cols.length
+        const calWidth = cols.map((it) => Math.floor(colNum * (it / sum)))
+        return {
+            ...config,
+            columns: calWidth.map((width) => ({
+                alignment: alignment ?? 'justify',
+                width,
+            })),
+        }
     }
-    result[chunkIndex].push(item)
-    return result
-  }, [] as T[][])
+    return config
 }
 
-const tableColumnWidth = ((terminal.column || 80) > 80 ? 80 : (terminal.column || 80)) - 12
+/**
+ * 打印表格到控制台
+ * @deprecated 推荐使用 table.print()
+ */
+const printTable = (data: unknown[][], userConfig?: TableConfig) =>
+    table.print(data, userConfig)
+
+/**
+ * 将数据分页
+ * @deprecated 推荐使用 table.partition()
+ */
+function tableDataPartation<T>(data: T[], pageSize: number = 5): T[][] {
+    return table.partition(data, pageSize)
+}
+
+/** 默认表格配置 */
+const tableDefaultConfig = table.getDefaultConfig()
+
+/** 默认列宽 */
+const tableColumnWidth = table.getMaxColumnWidth()
 
 export {
-  tableConfig,
-  printTable,
-  tableDataPartation,
-  tableDefaultConfig,
-  tableColumnWidth,
+    printTable,
+    tableColumnWidth,
+    tableConfig,
+    tableDataPartation,
+    tableDefaultConfig,
 }
