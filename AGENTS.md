@@ -1,3 +1,4 @@
+
 # AGENTS.md
 
 Guidelines for AI agents working in this repository.
@@ -37,11 +38,14 @@ bun run src/command/git_status.ts
 ## Lint/Format Commands
 
 ```bash
-# Run ESLint
-bunx eslint src/
+# Run Biome linter
+bunx biome lint src/
 
-# Run Prettier
-bunx prettier --write src/
+# Run Biome formatter
+bunx biome format --write src/
+
+# Run Biome check (lint + format)
+bunx biome check --write src/
 
 # Type check
 bunx tsc --noEmit
@@ -50,11 +54,11 @@ bunx tsc --noEmit
 ## Code Style Guidelines
 
 ### Formatting
-- **No semicolons** (enforced by ESLint/Prettier)
+- **No semicolons** (enforced by Biome)
 - **Single quotes** for strings
 - **4-space indentation**
 - **ES5 trailing commas** (no trailing commas)
-- Max line length: default (80)
+- Max line length: 80
 
 ### Imports
 - Use ES modules (`"type": "module"`)
@@ -125,5 +129,5 @@ new Command()
 Required for LLM features:
 - `ALIAS_BASE_URL` / `ALIAS_API_KEY` / `ALIAS_DEFAULT_MODEL` - OpenAI
 - `ALIAS_OLLAMA_BASE_URL` / `ALIAS_OLLAMA_DEFAULT_MODEL` - Ollama
-- `ALIAS_TYPE='ollama'` - Use Ollama instead of OpenAI
-- `EDITOR` - Preferred editor (defaults to 'vi')
+- `ALIAS_TYPE='"'"'ollama'"'"'` - Use Ollama instead of OpenAI
+- `EDITOR` - Preferred editor (defaults to '"'"'vi'"'"')
