@@ -1,25 +1,25 @@
-import { display } from "./color-utils"
-import { reg } from "./common-utils"
+import { display } from './color-utils'
+import { reg } from './common-utils'
 import {
-  cleanFilePath,
-  isSummmaryLine,
-  renderFileChange,
-  renderSummaryLine,
-} from "./git-format"
-import { terminal } from "./platform-utils"
+    cleanFilePath,
+    isSummmaryLine,
+    renderFileChange,
+    renderSummaryLine,
+} from './git-format'
+import { terminal } from './platform-utils'
 
-type CommandType = "git-pull" | "git-switch"
+type CommandType = 'git-pull' | 'git-switch'
 
 type CommandLogFormat = {
-  match: (lines: string[]) => boolean
-  print: (lines: string[]) => void
+    match: (lines: string[]) => boolean
+    print: (lines: string[]) => void
 }
 
 function highlight(str: string): string {
-  const { singleQuotes, doubleQuotes } = reg
-  let result = str.replaceAll(singleQuotes, (m) => display.highlight.bold(m))
-  result = result.replaceAll(doubleQuotes, (m) => display.highlight.bold(m))
-  return result
+    const { singleQuotes, doubleQuotes } = reg
+    let result = str.replaceAll(singleQuotes, (m) => display.highlight.bold(m))
+    result = result.replaceAll(doubleQuotes, (m) => display.highlight.bold(m))
+    return result
 }
 
 /**
@@ -43,20 +43,20 @@ function highlight(str: string): string {
  *
  */
 function isUpdateFastForward(strs: string[]): boolean {
-  return strs[0].startsWith("Updating") && strs[1].startsWith("Fast-forward")
+    return strs[0].startsWith('Updating') && strs[1].startsWith('Fast-forward')
 }
 
 function printUpdateFastForwardLog(strs: string[]): void {
-  const [fileList, summaryList, deatilList] = _fastForwardBodySplit(strs)
-  const str = (
-    [
-      ..._fastForwardTitle(strs),
-      ..._fastForwardBodyFileFormat(fileList),
-      ..._fastForwardBodyFileSummaryFormat(summaryList),
-      ..._fastForwardBodyFileDetailFormat(deatilList),
-    ] as string[]
-  ).join("\n")
-  return console.log(str)
+    const [fileList, summaryList, deatilList] = _fastForwardBodySplit(strs)
+    const str = (
+        [
+            ..._fastForwardTitle(strs),
+            ..._fastForwardBodyFileFormat(fileList),
+            ..._fastForwardBodyFileSummaryFormat(summaryList),
+            ..._fastForwardBodyFileDetailFormat(deatilList),
+        ] as string[]
+    ).join('\n')
+    console.log(str)
 }
 
 /**
@@ -65,124 +65,126 @@ function printUpdateFastForwardLog(strs: string[]): void {
  * @param strs
  */
 function _fastForwardTitle(strs: string[]): string[] {
-  const [update, hashMove] = strs[0].split(" ")
-  const [oldHash, newHash] = hashMove.split("..")
-  return [
-    `${display.note.bold(update)} ${display.highlight(oldHash)}..${display.note(
-      newHash,
-    )}`,
-    display.warning(strs[1]),
-  ]
+    const [update, hashMove] = strs[0].split(' ')
+    const [oldHash, newHash] = hashMove.split('..')
+    return [
+        `${display.note.bold(update)} ${display.highlight(oldHash)}..${display.note(
+            newHash
+        )}`,
+        display.warning(strs[1]),
+    ]
 }
 
 function _fastForwardBodySplit(strs: string[]) {
-  let notFileList = false
-  return strs.reduce((arr, it, idx) => {
-    if (idx < 2) {
-      return arr
-    }
-    const tk = (idx: number) => {
-      const item: string[] = arr[idx]
-      if (!item) {
-        arr.push([it])
-        return
-      }
-      item.push(it)
-    }
-    const summaryLine = isSummmaryLine(it)
-    if (!notFileList && !summaryLine) {
-      tk(0)
-      return arr
-    }
-    if (summaryLine) {
-      notFileList = true
-      tk(1)
-      return arr
-    }
-    tk(2)
-    return arr
-  }, [] as string[][])
+    let notFileList = false
+    return strs.reduce((arr, it, idx) => {
+        if (idx < 2) {
+            return arr
+        }
+        const tk = (idx: number) => {
+            const item: string[] = arr[idx]
+            if (!item) {
+                arr.push([it])
+                return
+            }
+            item.push(it)
+        }
+        const summaryLine = isSummmaryLine(it)
+        if (!notFileList && !summaryLine) {
+            tk(0)
+            return arr
+        }
+        if (summaryLine) {
+            notFileList = true
+            tk(1)
+            return arr
+        }
+        tk(2)
+        return arr
+    }, [] as string[][])
 }
 
 function _fastForwardBodyFileFormat(fileList: string[] | undefined): string[] {
-  if (!fileList) {
-    return []
-  }
-  return fileList.map((it) => {
-    const [file, change] = it.split("|")
-    return `${cleanFilePath(file, terminal.column)}|${renderFileChange(change)}`
-  })
+    if (!fileList) {
+        return []
+    }
+    return fileList.map((it) => {
+        const [file, change] = it.split('|')
+        return `${cleanFilePath(file, terminal.column)}|${renderFileChange(change)}`
+    })
 }
 
 function _fastForwardBodyFileSummaryFormat(
-  summaryList: string[] | undefined,
+    summaryList: string[] | undefined
 ): string[] {
-  if (!summaryList) {
-    return []
-  }
-  return [` ${renderSummaryLine(summaryList[0])}`]
+    if (!summaryList) {
+        return []
+    }
+    return [` ${renderSummaryLine(summaryList[0])}`]
 }
 
 function _fastForwardBodyFileDetailFormat(
-  deatilList: string[] | undefined,
+    deatilList: string[] | undefined
 ): string[] {
-  const typeFormat = (str: string) => {
-    switch (str) {
-      case "create":
-        return display.success
-      case "delete":
-        return display.error
-      default:
-        return display.note
+    const typeFormat = (str: string) => {
+        switch (str) {
+            case 'create':
+                return display.success
+            case 'delete':
+                return display.error
+            default:
+                return display.note
+        }
     }
-  }
-  if (!deatilList) {
-    return []
-  }
-  return deatilList.reduce((arr, it) => {
-    const cleanPath = (path: string) =>
-      cleanFilePath(path, terminal.column, false).trim()
-    const renamePath = () => {
-      // rename src/main/resources/icons/{grayStarOff.svg => starOffGray.svg}
-      const path = it.substring(8)
-      const mts = path.match(reg.curlyBraces)?.[0]
-      if (!mts) {
-        return display.note(path)
-      }
-      const [oldName, newName] = mts.split(" => ")
-      const ftPath = path
-        .split(mts)
-        .map((it) => display.note(it))
-        .join(`${display.error(oldName)} => ${display.success(newName)}`)
-      return ` ${display.note("rename")} ${cleanPath(ftPath)}`
+    if (!deatilList) {
+        return []
     }
-    if (it.startsWith(" rename")) {
-      arr.push(renamePath())
-    } else {
-      // create mode 100644 clinflash-epro/epro/src/main/java/com/jxepro/clinflash/common/ThreadPoolMonitor.java
-      const parts = it.split(" ")
-      const [ept, type, mode, filetype, file] = parts
-      const cl = typeFormat(type)
-      arr.push(
-        [
-          ept,
-          cl.bold(type),
-          mode,
-          display.note(filetype),
-          cl(cleanPath(file)),
-        ].join(" "),
-      )
-    }
-    return arr
-  }, [] as string[])
+    return deatilList.reduce((arr, it) => {
+        const cleanPath = (path: string) =>
+            cleanFilePath(path, terminal.column, false).trim()
+        const renamePath = () => {
+            // rename src/main/resources/icons/{grayStarOff.svg => starOffGray.svg}
+            const path = it.substring(8)
+            const mts = path.match(reg.curlyBraces)?.[0]
+            if (!mts) {
+                return display.note(path)
+            }
+            const [oldName, newName] = mts.split(' => ')
+            const ftPath = path
+                .split(mts)
+                .map((it) => display.note(it))
+                .join(
+                    `${display.error(oldName)} => ${display.success(newName)}`
+                )
+            return ` ${display.note('rename')} ${cleanPath(ftPath)}`
+        }
+        if (it.startsWith(' rename')) {
+            arr.push(renamePath())
+        } else {
+            // create mode 100644 clinflash-epro/epro/src/main/java/com/jxepro/clinflash/common/ThreadPoolMonitor.java
+            const parts = it.split(' ')
+            const [ept, type, mode, filetype, file] = parts
+            const cl = typeFormat(type)
+            arr.push(
+                [
+                    ept,
+                    cl.bold(type),
+                    mode,
+                    display.note(filetype),
+                    cl(cleanPath(file)),
+                ].join(' ')
+            )
+        }
+        return arr
+    }, [] as string[])
 }
 
 function isAlreadyUpToDate(lines: string[]): boolean {
-  return "Already up to date." === lines[0]
+    return 'Already up to date.' === lines[0]
 }
 
 function printAlreadyUpToDateLog(lines: string[]): void {
-  console.log(display.success(lines[0]))
+    console.log(display.success(lines[0]))
 }
 
 /*
@@ -192,84 +194,86 @@ Your branch is behind 'origin/docker' by 1 commit, and can be fast-forwarded.
   (use "git pull" to update your local branch)
 */
 function isFastForwardedPrompt(lines: string[]): boolean {
-  return (
-    lines[0].startsWith(`Your branch is behind`) &&
-    lines[0].endsWith(`can be fast-forwarded.`)
-  )
+    return (
+        lines[0].startsWith(`Your branch is behind`) &&
+        lines[0].endsWith(`can be fast-forwarded.`)
+    )
 }
 
 function printFastForwardedPrompt(lines: string[]): void {
-  console.log(`${highlight(lines[0])}\n${highlight(lines[1])}`)
+    console.log(`${highlight(lines[0])}\n${highlight(lines[1])}`)
 }
 
 function isUpToDate(lines: string[]): boolean {
-  return lines[0].startsWith(`Your branch is up to date with`)
+    return lines[0].startsWith(`Your branch is up to date with`)
 }
 
 function printUpToDate(lines: string[]): void {
-  console.log(highlight(lines[0]))
+    console.log(highlight(lines[0]))
 }
 
 function isSwitchCreateBranch(lines: string[]): boolean {
-  return lines[0].startsWith("Switched to a new branch")
+    return lines[0].startsWith('Switched to a new branch')
 }
 
 function printSwitchCreateBranch(lines: string[]): void {
-  console.log(display.success(highlight(lines[0])))
+    console.log(display.success(highlight(lines[0])))
 }
 
 function isSwitchTrackRemote(lines: string[]): boolean {
-  return lines[0].startsWith("branch ") && lines[0].includes(" set up to track")
+    return (
+        lines[0].startsWith('branch ') && lines[0].includes(' set up to track')
+    )
 }
 
 function printSwitchTrackRemote(lines: string[]): void {
-  console.log(display.success(highlight(lines[0])))
+    console.log(display.success(highlight(lines[0])))
 }
 
 const format: Record<CommandType, CommandLogFormat[]> = {
-  "git-pull": [
-    {
-      match: isAlreadyUpToDate,
-      print: printAlreadyUpToDateLog,
-    },
-    {
-      match: isUpdateFastForward,
-      print: printUpdateFastForwardLog,
-    },
-  ],
-  "git-switch": [
-    {
-      match: isSwitchCreateBranch,
-      print: printSwitchCreateBranch,
-    },
-    {
-      match: isSwitchTrackRemote,
-      print: printSwitchTrackRemote,
-    },
-    {
-      match: isFastForwardedPrompt,
-      print: printFastForwardedPrompt,
-    },
-    {
-      match: isUpToDate,
-      print: printUpToDate,
-    },
-  ],
+    'git-pull': [
+        {
+            match: isAlreadyUpToDate,
+            print: printAlreadyUpToDateLog,
+        },
+        {
+            match: isUpdateFastForward,
+            print: printUpdateFastForwardLog,
+        },
+    ],
+    'git-switch': [
+        {
+            match: isSwitchCreateBranch,
+            print: printSwitchCreateBranch,
+        },
+        {
+            match: isSwitchTrackRemote,
+            print: printSwitchTrackRemote,
+        },
+        {
+            match: isFastForwardedPrompt,
+            print: printFastForwardedPrompt,
+        },
+        {
+            match: isUpToDate,
+            print: printUpToDate,
+        },
+    ],
 }
 
 function logcmd(log: string, type: CommandType): void {
-  const lines = log.split("\n")
-  let foramtMatched = false
-  format[type].forEach((it) => {
-    if (it.match(lines)) {
-      it.print(lines)
-      foramtMatched = true
-      return
+    const lines = log.split('\n')
+    let foramtMatched = false
+    format[type].forEach((it) => {
+        if (it.match(lines)) {
+            it.print(lines)
+            foramtMatched = true
+            return
+        }
+    })
+    if (!foramtMatched) {
+        console.log(display.warning(log))
     }
-  })
-  if (!foramtMatched) {
-    console.log(display.warning(log))
-  }
 }
 
 export { format, logcmd }

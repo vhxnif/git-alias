@@ -1,23 +1,23 @@
 export {
-  getTheme,
-  setTheme,
-  palette,
-  semantic,
-  gitFormat,
-  diff,
-  box,
-  display,
-  catppuccinMocha,
-  getThemeByName,
-  listThemes,
-} from "./theme"
+    box,
+    catppuccinMocha,
+    diff,
+    display,
+    getTheme,
+    getThemeByName,
+    gitFormat,
+    listThemes,
+    palette,
+    semantic,
+    setTheme,
+} from './theme'
 
 export type {
-  PaletteColor,
-  SemanticColor,
-  GitFormatColorKey,
-  DiffColorKey,
-  BoxColorKey,
-  DisplayColorKey,
-  Theme,
-} from "./theme-types"
+    BoxColorKey,
+    DiffColorKey,
+    DisplayColorKey,
+    GitFormatColorKey,
+    PaletteColor,
+    SemanticColor,
+    Theme,
+} from './theme-types'

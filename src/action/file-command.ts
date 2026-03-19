@@ -1,18 +1,18 @@
-import { checkbox, select } from "@inquirer/prompts"
-import { isEmpty } from "../utils/common-utils"
-import type { Choice } from "../utils/inquirer-utils"
-import { exec, terminal } from "../utils/platform-utils"
-import { cleanFilePath } from "../utils/git-format"
+import { checkbox, select } from '@inquirer/prompts'
+import { isEmpty } from '../utils/common-utils'
+import { cleanFilePath } from '../utils/git-format'
+import type { Choice } from '../utils/inquirer-utils'
+import { exec, terminal } from '../utils/platform-utils'
 
 async function pwd(): Promise<string> {
-  return await exec("pwd")
+    return await exec('pwd')
 }
 
 // ---- git status ---- //
 type File = {
-  stageStatus: string
-  workStatus: string
-  filePath: string
+    stageStatus: string
+    workStatus: string
+    filePath: string
 }
 
 /**
@@ -45,148 +45,148 @@ U           U    unmerged, both modified
 -------------------------------------------------
 */
 async function fileStatus(): Promise<File[]> {
-  const cmd = "git status -sunormal"
-  const res = await exec(cmd)
-  if (!res) {
-    throw Error(`No Changes`)
-  }
-  const lines = res.split("\n").filter((l) => !isEmpty(l))
-  if (isEmpty(lines)) {
-    return []
-  }
-  return lines.map((it) => ({
-    stageStatus: it.substring(0, 1),
-    workStatus: it.substring(1, 2),
-    filePath: it.substring(3),
-  }))
+    const cmd = 'git status -sunormal'
+    const res = await exec(cmd)
+    if (!res) {
+        throw Error(`No Changes`)
+    }
+    const lines = res.split('\n').filter((l) => !isEmpty(l))
+    if (isEmpty(lines)) {
+        return []
+    }
+    return lines.map((it) => ({
+        stageStatus: it.substring(0, 1),
+        workStatus: it.substring(1, 2),
+        filePath: it.substring(3),
+    }))
 }
 
 function fileIgnore({ stageStatus, workStatus }: File): boolean {
-  return stageStatus === "!" && workStatus === "!"
+    return stageStatus === '!' && workStatus === '!'
 }
 
 function fileUntracked({ stageStatus, workStatus }: File): boolean {
-  return stageStatus === "?" && workStatus === "?"
+    return stageStatus === '?' && workStatus === '?'
 }
 
 function fileChanged({ workStatus }: File): boolean {
-  return ![" ", "!"].includes(workStatus)
+    return ![' ', '!'].includes(workStatus)
 }
 
 function fileStaged({ stageStatus }: File): boolean {
-  return ![" ", "!", "?"].includes(stageStatus)
+    return ![' ', '!', '?'].includes(stageStatus)
 }
 
 // ---- git add ---- //
 async function gitFileAdd(files: File[]): Promise<string> {
-  const filePaths = files
-    .filter(fileChanged)
-    .map((it) => it.filePath)
-    .join(" ")
-  return await exec(`git add -- ${filePaths}`)
+    const filePaths = files
+        .filter(fileChanged)
+        .map((it) => it.filePath)
+        .join(' ')
+    return await exec(`git add -- ${filePaths}`)
 }
 
 // ---- git checkout HEAD -- <file> ---- //
 async function gitFileCheckout({ filePath }: File): Promise<string> {
-  return await exec(`git checkout HEAD -- ${filePath}`)
+    return await exec(`git checkout HEAD -- ${filePath}`)
 }
 
 // ---- git diff <fill> ---- //
 async function gitFileDiff({ filePath }: File): Promise<string> {
-  return await exec(`git diff ${filePath}`)
+    return await exec(`git diff ${filePath}`)
 }
 
 // --- git restore --staged <file> ---- //
 
 async function gitFileRestore(files: File[]): Promise<string> {
-  return await exec(
-    `git restore --staged ${files.map((it) => it.filePath).join(" ")}`,
-  )
+    return await exec(
+        `git restore --staged ${files.map((it) => it.filePath).join(' ')}`
+    )
 }
 
 // ---- interation ---- //
 type FileActionArg = {
-  message?: string
-  fileFilter: (file: File) => boolean
+    message?: string
+    fileFilter: (file: File) => boolean
 }
 type BatchFileActionArg = FileActionArg & {
-  command: (file: File[]) => Promise<void>
+    command: (file: File[]) => Promise<void>
 }
 
 type SingleFielActionArg = FileActionArg & {
-  command: (file: File) => Promise<void>
+    command: (file: File) => Promise<void>
 }
 
 function fileChoices(files: File[]): Choice<File>[] {
-  if (isEmpty(files)) {
-    throw Error(`File Missing.`)
-  }
-  const isRename = (f: File) => f.stageStatus === "R"
-  const isOnlyRename = (f: File) => isRename(f) && f.workStatus === " "
-  return files
-    .filter((it) => !isOnlyRename(it))
-    .map((it) => {
-      if (isRename(it)) {
-        const [oldPath, newPath] = it.filePath.split(" -> ")
-        it.filePath = newPath ?? oldPath
-      }
-      return {
-        name: cleanFilePath(it.filePath, terminal.column, false),
-        value: it,
-      }
-    })
+    if (isEmpty(files)) {
+        throw Error(`File Missing.`)
+    }
+    const isRename = (f: File) => f.stageStatus === 'R'
+    const isOnlyRename = (f: File) => isRename(f) && f.workStatus === ' '
+    return files
+        .filter((it) => !isOnlyRename(it))
+        .map((it) => {
+            if (isRename(it)) {
+                const [oldPath, newPath] = it.filePath.split(' -> ')
+                it.filePath = newPath ?? oldPath
+            }
+            return {
+                name: cleanFilePath(it.filePath, terminal.column, false),
+                value: it,
+            }
+        })
 }
 
 async function batchFileAction({
-  message,
-  command,
-  fileFilter,
+    message,
+    command,
+    fileFilter,
 }: BatchFileActionArg): Promise<void> {
-  const choices = await fileStatus().then((it) =>
-    fileChoices(it.filter(fileFilter)),
-  )
-  await checkbox({
-    message: message ? message : "Select File:",
-    choices,
-  }).then(async (answer) => {
-    if (isEmpty(answer)) {
-      return
-    }
-    await command(answer)
-  })
+    const choices = await fileStatus().then((it) =>
+        fileChoices(it.filter(fileFilter))
+    )
+    await checkbox({
+        message: message ? message : 'Select File:',
+        choices,
+    }).then(async (answer) => {
+        if (isEmpty(answer)) {
+            return
+        }
+        await command(answer)
+    })
 }
 
 async function singleFileAction({
-  message,
-  command,
-  fileFilter,
+    message,
+    command,
+    fileFilter,
 }: SingleFielActionArg): Promise<void> {
-  const choices = await fileStatus().then((it) =>
-    fileChoices(it.filter(fileFilter)),
-  )
-  await select({
-    message: message ? message : "Select File:",
-    choices,
-  }).then(async (answer) => {
-    if (!answer) {
-      return
-    }
-    await command(answer)
-  })
+    const choices = await fileStatus().then((it) =>
+        fileChoices(it.filter(fileFilter))
+    )
+    await select({
+        message: message ? message : 'Select File:',
+        choices,
+    }).then(async (answer) => {
+        if (!answer) {
+            return
+        }
+        await command(answer)
+    })
 }
 
 export {
-  type File,
-  pwd,
-  fileStatus,
-  fileIgnore,
-  fileUntracked,
-  fileChanged,
-  fileStaged,
-  batchFileAction,
-  singleFileAction,
-  gitFileAdd,
-  gitFileCheckout,
-  gitFileDiff,
-  gitFileRestore,
+    batchFileAction,
+    type File,
+    fileChanged,
+    fileIgnore,
+    fileStaged,
+    fileStatus,
+    fileUntracked,
+    gitFileAdd,
+    gitFileCheckout,
+    gitFileDiff,
+    gitFileRestore,
+    pwd,
+    singleFileAction,
 }
