@@ -1,89 +1,107 @@
-import chalk, { type ChalkInstance } from "chalk"
-
-const hex = (color: string): ChalkInstance => chalk.hex(color)
+import chalk, { type ChalkInstance } from 'chalk'
+import { getTheme } from '../theme'
+import type { PaletteColor } from '../theme/theme-types'
 
 type ColorKey =
-  | "rosewater"
-  | "flamingo"
-  | "pink"
-  | "mauve"
-  | "red"
-  | "maroon"
-  | "peach"
-  | "yellow"
-  | "green"
-  | "teal"
-  | "sky"
-  | "sapphire"
-  | "blue"
-  | "lavender"
-  | "subtext1"
-  | "subtext0"
-  | "overlay2"
-  | "overlay1"
-  | "overlay0"
-  | "surface2"
-  | "surface1"
-  | "surface0"
-  | "base"
-  | "mantle"
-  | "crust"
+    | 'rosewater'
+    | 'flamingo'
+    | 'pink'
+    | 'mauve'
+    | 'red'
+    | 'maroon'
+    | 'peach'
+    | 'yellow'
+    | 'green'
+    | 'teal'
+    | 'sky'
+    | 'sapphire'
+    | 'blue'
+    | 'lavender'
+    | 'subtext1'
+    | 'subtext0'
+    | 'overlay2'
+    | 'overlay1'
+    | 'overlay0'
+    | 'surface2'
+    | 'surface1'
+    | 'surface0'
+    | 'base'
+    | 'mantle'
+    | 'crust'
 
-const colorHex: Record<ColorKey, string> = {
-  rosewater: "#F5E0DC",
-  flamingo: "#F2CDCD",
-  pink: "#F5C2E7",
-  mauve: "#CBA6F7",
-  red: "#F38BA8",
-  maroon: "#EBA0AC",
-  peach: "#FAB387",
-  yellow: "#F9E2AF",
-  green: "#A6E3A1",
-  teal: "#94E2D5",
-  sky: "#89DCEB",
-  sapphire: "#74C7EC",
-  blue: "#89B4FA",
-  lavender: "#B4BEFE",
-  subtext1: "#BAC2DE",
-  subtext0: "#A6ADC8",
-  overlay2: "#9399B2",
-  overlay1: "#7F849C",
-  overlay0: "#6C7086",
-  surface2: "#585B70",
-  surface1: "#45475A",
-  surface0: "#313244",
-  base: "#1E1E2E",
-  mantle: "#181825",
-  crust: "#11111B",
+const legacyToNew: Record<ColorKey, PaletteColor> = {
+    rosewater: 'white',
+    flamingo: 'pink',
+    pink: 'pink',
+    mauve: 'purple',
+    red: 'red',
+    maroon: 'red',
+    peach: 'orange',
+    yellow: 'yellow',
+    green: 'green',
+    teal: 'cyan',
+    sky: 'cyan',
+    sapphire: 'blue',
+    blue: 'blue',
+    lavender: 'purple',
+    subtext1: 'text',
+    subtext0: 'textMuted',
+    overlay2: 'gray',
+    overlay1: 'gray',
+    overlay0: 'gray',
+    surface2: 'surface',
+    surface1: 'surfaceBright',
+    surface0: 'surfaceDim',
+    base: 'surfaceDim',
+    mantle: 'surfaceDim',
+    crust: 'surfaceDim',
 }
 
-function toColor(): Record<ColorKey, ChalkInstance> {
-  return Object.keys(colorHex).reduce(
-    (obj, it) => {
-      const k = it as ColorKey
-      obj[k] = hex(colorHex[k])
-      return obj
-    },
+function hex(color: string): ChalkInstance {
+    return chalk.hex(color)
+}
+
+export const color: Record<ColorKey, ChalkInstance> = new Proxy(
     {} as Record<ColorKey, ChalkInstance>,
-  )
+    {
+        get(_, key: string) {
+            const paletteKey = legacyToNew[key as ColorKey]
+            if (!paletteKey) {
+                return undefined
+            }
+            const theme = getTheme()
+            return hex(theme.palette[paletteKey])
+        },
+    },
+)
+
+export const colorHex: Record<ColorKey, string> = new Proxy(
+    {} as Record<ColorKey, string>,
+    {
+        get(_, key: string) {
+            const paletteKey = legacyToNew[key as ColorKey]
+            if (!paletteKey) {
+                return ''
+            }
+            const theme = getTheme()
+            return theme.palette[paletteKey]
+        },
+    },
+)
+
+export const display = {
+    note: color.sky,
+    important: color.pink,
+    tip: color.green,
+    success: color.green,
+    caution: color.mauve,
+    warning: color.peach,
+    error: color.red,
+    highlight: color.mauve,
 }
 
-const color = toColor()
-
-// ---- display ---- //
-const display = {
-  note: color.sky,
-  important: color.pink,
-  tip: color.green,
-  success: color.green,
-  caution: color.mauve,
-  warning: color.peach,
-  error: color.red,
-  highlight: color.mauve,
+export function tableTitle(strs: string[]) {
+    return strs.map((it) => color.green.bold(it))
 }
 
-function tableTitle(strs: string[]) {
-  return strs.map((it) => color.green.bold(it))
-}
-
-export { colorHex, color, display, tableTitle, type ColorKey }
+export type { ColorKey }
