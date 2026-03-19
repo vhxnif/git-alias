@@ -1,7 +1,10 @@
-# AGENTS.md - Coding Guidelines for git-alias
+# AGENTS.md
+
+Guidelines for AI agents working in this repository.
 
 ## Project Overview
-A TypeScript/Bun CLI tool providing simplified git command aliases with interactive prompts and LLM integration.
+
+Git alias CLI tool written in TypeScript/Bun. Provides interactive git command shortcuts with table formatting and LLM integration for commit messages.
 
 ## Build Commands
 
@@ -9,106 +12,118 @@ A TypeScript/Bun CLI tool providing simplified git command aliases with interact
 # Install dependencies
 bun install
 
-# Build the project (compiles TypeScript to out/ directory)
+# Build all commands to ./out
 bun run build
 
 # Build and link locally for testing
 bun run link
 
-# Unlink from local
+# Remove local link
 bun run unlink
 ```
+
+### Testing Commands
+
+When testing individual commands during development, run them directly with Bun:
+
+```bash
+# Test a specific command (do NOT use package.json scripts)
+bun run src/command/git_add.ts
+bun run src/command/git_status.ts
+```
+
+**Important**: Do not use `bun run build` scripts during development/testing - they are for production builds only. Use `bun run <file>.ts` to execute TypeScript files directly.
 
 ## Lint/Format Commands
 
 ```bash
 # Run ESLint
-npx eslint src/
+bunx eslint src/
 
-# Run ESLint with fix
-npx eslint src/ --fix
+# Run Prettier
+bunx prettier --write src/
 
-# Run Prettier (config in .prettier.json)
-npx prettier --write "src/**/*.ts"
+# Type check
+bunx tsc --noEmit
 ```
-
-**Note**: No test framework is configured in this project.
 
 ## Code Style Guidelines
 
 ### Formatting
-- **No semicolons** (enforced by ESLint and Prettier)
+- **No semicolons** (enforced by ESLint/Prettier)
 - **Single quotes** for strings
-- **4-space indentation** (tabs)
-- **ES5 trailing commas**
-- Target: ESNext with Bun runtime
-- Module system: ES Modules
+- **4-space indentation**
+- **ES5 trailing commas** (no trailing commas)
+- Max line length: default (80)
 
 ### Imports
+- Use ES modules (`"type": "module"`)
 - Use `import type` for type-only imports
-- Group imports: external packages first, then internal modules
-- Example:
-  ```typescript
-  import { Command } from "commander"
-  import type { Choice } from "../utils/inquirer-utils"
-  import { color } from "../utils/color-utils"
-  ```
+- Group imports: external deps first, then internal
+- Use forward slashes in relative paths: `../utils/common-utils`
+
+```typescript
+import { Command } from "commander"
+import type { Choice } from "../utils/inquirer-utils"
+import { errParse } from "../utils/common-utils"
+```
 
 ### Naming Conventions
-- **Files**: kebab-case for utilities (e.g., `color-utils.ts`), descriptive for commands (e.g., `git_status.ts`)
-- **Types/Interfaces**: PascalCase (e.g., `ILLMClient`, `Branch`, `LLMMessage`)
-- **Functions/Variables**: camelCase (e.g., `branchList`, `printTable`)
-- **Constants**: camelCase or UPPER_CASE for true constants
-- **Type aliases**: PascalCase with descriptive names
+- **camelCase** for functions, variables, parameters
+- **PascalCase** for types, interfaces, classes
+- Descriptive names: `branchList`, `gitSwitch`, `errParse`
+- Boolean prefixes: `isCurrent`, `hasChanges`
 
-### TypeScript
-- Enable strict mode (already configured in tsconfig.json)
-- Define explicit return types for exported functions
-- Use interfaces for object shapes that will be implemented
-- Use type aliases for unions, tuples, and mapped types
-- Prefer `readonly` arrays where mutation isn't needed
+### Types
+- Enable strict TypeScript mode
+- Explicit return types on exported functions
+- Use `type` for object shapes, `interface` for extensible contracts
+- Prefer `unknown` over `any` for error handling
+
+```typescript
+type Branch = {
+  name: string
+  isCurrent: boolean
+}
+
+interface ILLMClient {
+  call(request: ILLMRequest): Promise<void>
+}
+```
 
 ### Error Handling
-- Use async/await with try/catch
-- Use the custom `errParse` utility for error formatting in commands
-- Example:
-  ```typescript
+- Use `.catch(errParse)` in command entry points
+- Throw descriptive Error objects in business logic
+- Handle async errors with try/catch
+
+```typescript
+async function gitSwitch({ branch }: GitSwitchArg): Promise<string> {
+  return await exec(`git switch ${branch.name}`)
+}
+
+// Entry point pattern
+new Command()
+  .action(async () => { /* ... */ })
   .parseAsync()
   .catch(errParse)
-  ```
-- Throw descriptive Error instances with clear messages
-
-### Architecture Patterns
-- **Commands**: Located in `src/command/`, each command is a standalone executable
-- **Actions**: Business logic in `src/action/`
-- **Utils**: Shared utilities in `src/utils/`
-- **Store**: SQLite database interactions in `src/store/`
-- **LLM**: OpenAI and Ollama client implementations in `src/llm/`
-
-### Function Style
-- Prefer arrow functions for callbacks and simple operations
-- Use regular functions for exported utilities
-- Use object method shorthand in classes
-- Destructure parameters when accessing multiple properties
-
-### Comments
-- Use `// ---- section name ---- //` for section dividers
-- Keep comments minimal and descriptive
-- Document complex business logic, not obvious code
-
-### Environment Variables
-The project uses these environment variables:
-- `EDITOR` - Preferred text editor
-- `ALIAS_BASE_URL`, `ALIAS_API_KEY`, `ALIAS_DEFAULT_MODEL` - OpenAI config
-- `ALIAS_OLLAMA_BASE_URL`, `ALIAS_OLLAMA_DEFAULT_MODEL` - Ollama config
-- `ALIAS_TYPE` - Set to 'ollama' to use Ollama instead of OpenAI
-
-## Project Structure
 ```
-src/
-  command/      # CLI command entry points
-  action/       # Business logic implementations
-  utils/        # Shared utility functions
-  store/        # Database/store implementations
-  llm/          # LLM client implementations
-```
+
+### Project Structure
+- `src/command/` - CLI entry points (one per git alias)
+- `src/action/` - Business logic implementations
+- `src/utils/` - Shared utilities
+- `src/llm/` - LLM client abstractions
+- `src/store/` - Data persistence utilities
+
+### Bun-Specific
+- Target Bun runtime (`--target bun`)
+- Use `bun:sqlite` for local storage
+- Use `Bun.$` or `exec` utility for shell commands
+
+## Environment Variables
+
+Required for LLM features:
+- `ALIAS_BASE_URL` / `ALIAS_API_KEY` / `ALIAS_DEFAULT_MODEL` - OpenAI
+- `ALIAS_OLLAMA_BASE_URL` / `ALIAS_OLLAMA_DEFAULT_MODEL` - Ollama
+- `ALIAS_TYPE='ollama'` - Use Ollama instead of OpenAI
+- `EDITOR` - Preferred editor (defaults to 'vi')
