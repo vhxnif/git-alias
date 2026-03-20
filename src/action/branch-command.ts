@@ -1,9 +1,9 @@
 import Database from 'bun:sqlite'
 import path from 'node:path'
 import { select } from '@inquirer/prompts'
+import type { Choice } from '../component/inquirer-utils'
 import { BranchHistoryStore } from '../store/branch-history-store'
 import { isEmpty } from '../utils/common-utils'
-import type { Choice } from '../utils/inquirer-utils'
 import { configPath, exec } from '../utils/platform-utils'
 
 // ---- branch action history ---- //

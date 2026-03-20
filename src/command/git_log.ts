@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
+import type { GitLog } from '../component/git-log-prompt'
+import { default as gitLog } from '../component/git-log-prompt'
 import { errParse, isEmpty, lines } from '../utils/common-utils'
-import type { GitLog } from '../utils/git-log-prompt'
-import { default as gitLog } from '../utils/git-log-prompt'
 import { exec } from '../utils/platform-utils'
 
 type GitLogCommand = {

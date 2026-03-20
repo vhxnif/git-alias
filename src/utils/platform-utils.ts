@@ -63,6 +63,7 @@ function platformConfigPath(): string {
     if (['linux', 'darwin'].includes(platform)) {
         return `${env('HOME')}${path.sep}.config`
     }
+    // biome-ignore lint/style/noNonNullAssertion: APPDATA always exists on Windows
     return env('APPDATA')!
 }
 

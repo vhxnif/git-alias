@@ -14,7 +14,9 @@ export class OpenAiClient implements ILLMClient {
 
     constructor() {
         this.client = new OpenAi({
+            // biome-ignore lint/style/noNonNullAssertion: env vars required at runtime
             baseURL: process.env.ALIAS_BASE_URL!,
+            // biome-ignore lint/style/noNonNullAssertion: env vars required at runtime
             apiKey: process.env.ALIAS_API_KEY!,
         })
     }

@@ -1,75 +1,119 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
 import { type Branch, branchList } from '../action/branch-command'
-import { table } from '../table'
-import { color, tableTitle } from '../utils/color-utils'
+import treeSelect, { type TreeNode } from '../component/tree-select'
+import { color } from '../utils/color-utils'
 import { errParse, isEmpty } from '../utils/common-utils'
-import { default as page } from '../utils/page-prompt'
-import { tableDataPartation, tableDefaultConfig } from '../utils/table-utils'
 
-function trackParse(track: string) {
-    // ↑ ↓
+function trackParse(track: string): string {
     const { red, green, blue, yellow } = color
-    const fmt = (a: string, b: string) =>
-        `${yellow('↑')}·${green(a)} ${yellow('↓')}·${blue(b)}`
     const str = track.substring(1, track.length - 1)
+
     if (str === 'gone') {
-        return red('✗')
+        return red('⚠')
     }
-    if (str.indexOf(',') !== -1) {
-        // [ahead 10, behind 5]
-        const [, a, , b] = str
-            .split(',')
-            .flatMap((it) => it.split(' '))
-            .map((it) => it.trim())
-        return fmt(a, b)
+
+    const parts = str.includes(',')
+        ? str.split(',').map((p) => p.trim())
+        : [str]
+
+    let ahead: string | undefined
+    let behind: string | undefined
+
+    for (const part of parts) {
+        const match = part.match(/^(ahead|behind)\s+(\d+)$/)
+        if (match) {
+            if (match[1] === 'ahead') {
+                ahead = match[2]
+            } else {
+                behind = match[2]
+            }
+        }
     }
-    // [ahead 3] or [behind 5]
-    const [type, num] = str.split(' ')
-    if (type === 'ahead') {
-        return fmt(num, '0')
+
+    const result: string[] = []
+    if (ahead && ahead !== '0') {
+        result.push(`${yellow('↑')}${green(ahead)}`)
     }
-    if (type === 'behind') {
-        return fmt('0', num)
+    if (behind && behind !== '0') {
+        result.push(`${yellow('↓')}${blue(behind)}`)
     }
-    return str
+
+    return result.join(' ')
 }
 
-function branchParse(bs: Branch[]): string[][] {
-    return bs.map((it) => {
-        const { isCurrent, name, upstream, track } = it
+function buildBranchTree(branches: Branch[]): TreeNode<Branch>[] {
+    const remotePattern = /^(origin|upstream|fork)\//
+    const remoteBranches = branches.filter((b) => remotePattern.test(b.name))
+    const localBranches = branches.filter((b) => !remotePattern.test(b.name))
 
-        return [
-            `${isCurrent ? color.yellow(name) : color.blue(name)}${isEmpty(upstream) ? '' : `\n${color.mauve(upstream)}`}`,
-            isEmpty(track) ? '' : `\n${trackParse(track)}`,
-        ]
-    })
-}
+    const localChildren: TreeNode<Branch>[] = localBranches.map((b) => ({
+        id: `local-${b.name}`,
+        label: b.name,
+        rawLabel: b.name,
+        value: b,
+        isLeaf: true,
+        isCurrent: b.isCurrent,
+        formatInfo: isEmpty(b.track) ? undefined : trackParse(b.track),
+    }))
 
-function tableParse(arr: string[][][]) {
-    return arr.map((it) => {
-        return table.render(
-            [tableTitle(['Branch\nUpstream', 'Track']), ...it],
-            tableDefaultConfig
-        )
-    })
+    const remoteChildren: TreeNode<Branch>[] = remoteBranches.map((b) => ({
+        id: `remote-${b.name}`,
+        label: b.name,
+        rawLabel: b.name,
+        value: b,
+        isLeaf: true,
+        isCurrent: b.isCurrent,
+        formatInfo: isEmpty(b.track) ? undefined : trackParse(b.track),
+    }))
+
+    const tree: TreeNode<Branch>[] = []
+
+    if (localChildren.length > 0) {
+        tree.push({
+            id: 'local-root',
+            label: 'Local Branches',
+            children: localChildren,
+            expanded: true,
+        })
+    }
+
+    if (remoteChildren.length > 0) {
+        tree.push({
+            id: 'remote-root',
+            label: 'Remote Branches',
+            children: remoteChildren,
+            expanded: false,
+        })
+    }
+
+    return tree
 }
 
 new Command()
     .name('gbl')
     .description('git branch -l / git branch -a')
-    .argument('[name]', 'barnch name', '')
+    .argument('[name]', 'branch name', '')
     .option('-a, --all', 'list all', false)
     .action(async (name, { all }) => {
-        const data = await branchList({
+        const branches = await branchList({
             name,
             all,
         })
-            .then(branchParse)
-            .then(tableDataPartation)
-            .then(tableParse)
 
-        await page({ data })
+        const tree = buildBranchTree(branches)
+
+        const result = await treeSelect({
+            message: 'Branch List',
+            tree,
+            pageSize: 15,
+            simplifyLabels: true,
+            splitBySlash: true,
+        })
+
+        if (result.type === 'cancelled') {
+            return
+        }
     })
     .parseAsync()
     .catch(errParse)
