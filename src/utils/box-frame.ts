@@ -29,6 +29,7 @@ export class BoxFrame {
     }
 
     text(): string {
+        // biome-ignore lint/style/noNonNullAssertion: width has default value in constructor
         const terminalWidth = this.config.width!
         const topLineSumWidth = terminalWidth - 4 - this.title.length
         const topLeftLineWidth = Math.floor(topLineSumWidth / 2)
@@ -54,10 +55,12 @@ export class BoxFrame {
     }
 
     private colorLine(lineStr: string) {
+        // biome-ignore lint/style/noNonNullAssertion: bolderColor has default value in constructor
         return color[this.config.bolderColor!](lineStr)
     }
 
     private colorTitle() {
+        // biome-ignore lint/style/noNonNullAssertion: titleColor has default value in constructor
         return color[this.config.titleColor!](this.title)
     }
 

@@ -26,6 +26,7 @@ export class LinkedList<T> {
         if (!this.header) {
             this.header = this.tail = n
         } else {
+            // biome-ignore lint/style/noNonNullAssertion: tail is guaranteed non-null when header exists
             this.tail!.next = n
             n.prev = this.tail
             this.tail = n

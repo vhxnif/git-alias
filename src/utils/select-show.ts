@@ -13,6 +13,7 @@ export type SelectShowConfig<T> = {
     show: (v: T) => string
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: generic utility for any value type
 const find = (v: Node<Value<any>>, step: number) => {
     let tmp = v
     for (let i = step; i > 0; i--) {
@@ -24,9 +25,12 @@ const find = (v: Node<Value<any>>, step: number) => {
     return tmp
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: generic UI component accepts any value type
 export default createPrompt<void, SelectShowConfig<any>>((config, done) => {
     const { message, data, show } = config
+    // biome-ignore lint/suspicious/noExplicitAny: generic UI component accepts any value type
     const [cursor, setCursor] = useState<Node<Value<any>>>(
+        // biome-ignore lint/style/noNonNullAssertion: header exists after list initialization
         new LinkedList(data).getHeader()!
     )
     const [showFlg, setShowFlg] = useState<boolean>(false)
