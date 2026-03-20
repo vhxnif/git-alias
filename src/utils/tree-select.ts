@@ -319,6 +319,7 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
       const { selectedId } = findCurrentBranch(processedTree)
       return selectedId
     })
+    const [help, setHelp] = useState(false)
     const [quit, setQuit] = useState(false)
     const [searchMode, setSearchMode] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
@@ -340,6 +341,10 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
       rl.clearLine(0)
 
       const isKey = (str: string) => key.name === str
+
+      if (isKey('h')) {
+        setHelp(!help)
+      }
 
       if (searchMode) {
         if (isKey('q')) {
@@ -491,13 +496,18 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
 
     const navHelp = `${key('Navigate: ', 'j/k')} ${subtext0('move')}  ${key('', 'space')} ${subtext0('toggle')}  ${key('', 'e/c')} ${subtext0('expand/collapse')}`
     const actionHelp = `${key('Actions:  ', 's')} ${subtext0('search')}  ${key('', 'enter')} ${subtext0('select')}  ${key('', 'q')} ${subtext0('quit')}`
-
+    const helpBar: string[] = []
+    if (help) {
+      helpBar.push(
+        '',
+        navHelp,
+        actionHelp,
+      )
+    }
     return [
       `${green.bold(message)}${pageIndicator}`,
       ...treeLines,
-      '',
-      navHelp,
-      actionHelp,
+      ...helpBar,
     ].join('\n')
   }
 )
