@@ -1,1 +1,1 @@
-bunx biome check src/
+bunx --bun @biomejs/biome check src/

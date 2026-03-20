@@ -49,6 +49,7 @@
   },
   "type": "module",
   "devDependencies": {
+    "@biomejs/biome": "2.4.8",
     "@commander-js/extra-typings": "^12.1.0",
     "@eslint/js": "^9.23.0",
     "bun-types": "^1.2.7",
