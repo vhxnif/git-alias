@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
 import { type Branch, branchList } from '../action/branch-command'
+import treeSelect, { type TreeNode } from '../component/tree-select'
 import { color } from '../utils/color-utils'
 import { errParse, isEmpty } from '../utils/common-utils'
-import treeSelect, { type TreeNode } from '../utils/tree-select'
 
 function trackParse(track: string): string {
     const { red, green, blue, yellow } = color

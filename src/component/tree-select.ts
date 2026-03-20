@@ -1,6 +1,6 @@
 import { createPrompt, useKeypress, useMemo, useState } from '@inquirer/core'
-import { color, display } from './color-utils'
-import { exit } from './platform-utils'
+import { color, display } from '../utils/color-utils'
+import { exit } from '../utils/platform-utils'
 
 export type TreeNode<T> = {
     id: string
