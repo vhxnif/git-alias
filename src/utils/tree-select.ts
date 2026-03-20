@@ -207,6 +207,7 @@ function highlightMatch(text: string, term: string): string {
 function renderTreeLine<T>(
     flatNode: FlatNode<T>,
     isSelected: boolean,
+    expandedIds: Set<string>,
     searchTerm: string = ''
 ): string {
     const { node, depth } = flatNode
@@ -219,7 +220,7 @@ function renderTreeLine<T>(
 
     let icon = ''
     if (!isLeaf) {
-        icon = node.expanded ? '📂 ' : '📁 '
+        icon = expandedIds.has(node.id) ? '📂 ' : '📁 '
     } else {
         icon = node.isCurrent ? '● ' : '○ '
     }
@@ -469,7 +470,7 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
         // biome-ignore lint/suspicious/noExplicitAny: generic UI component accepts any value type
         const treeLines = visibleNodes.map((flatNode: FlatNode<any>) => {
             const isSelected = flatNode.node.id === selectedId
-            return renderTreeLine(flatNode, isSelected, searchTerm)
+            return renderTreeLine(flatNode, isSelected, expandedIds, searchTerm)
         })
 
         const { pink, subtext0, peach } = color
