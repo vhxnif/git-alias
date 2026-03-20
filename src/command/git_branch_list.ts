@@ -5,52 +5,67 @@ import { table } from '../table'
 import { color, tableTitle } from '../utils/color-utils'
 import { errParse, isEmpty } from '../utils/common-utils'
 import { default as page } from '../utils/page-prompt'
-import { tableDataPartation, tableDefaultConfig } from '../utils/table-utils'
+import { tableDataPartation } from '../utils/table-utils'
 
-function trackParse(track: string) {
-    // ↑ ↓
+function trackParse(track: string): string {
     const { red, green, blue, yellow } = color
-    const fmt = (a: string, b: string) =>
-        `${yellow('↑')}·${green(a)} ${yellow('↓')}·${blue(b)}`
     const str = track.substring(1, track.length - 1)
+
     if (str === 'gone') {
-        return red('✗')
+        return red('⚠')
     }
-    if (str.indexOf(',') !== -1) {
-        // [ahead 10, behind 5]
-        const [, a, , b] = str
-            .split(',')
-            .flatMap((it) => it.split(' '))
-            .map((it) => it.trim())
-        return fmt(a, b)
+
+    const parts = str.includes(',')
+        ? str.split(',').map((p) => p.trim())
+        : [str]
+
+    let ahead: string | undefined
+    let behind: string | undefined
+
+    for (const part of parts) {
+        const match = part.match(/^(ahead|behind)\s+(\d+)$/)
+        if (match) {
+            if (match[1] === 'ahead') {
+                ahead = match[2]
+            } else {
+                behind = match[2]
+            }
+        }
     }
-    // [ahead 3] or [behind 5]
-    const [type, num] = str.split(' ')
-    if (type === 'ahead') {
-        return fmt(num, '0')
+
+    const result: string[] = []
+    if (ahead && ahead !== '0') {
+        result.push(`${yellow('↑')}${green(ahead)}`)
     }
-    if (type === 'behind') {
-        return fmt('0', num)
+    if (behind && behind !== '0') {
+        result.push(`${yellow('↓')}${blue(behind)}`)
     }
-    return str
+
+    return result.join(' ')
 }
 
 function branchParse(bs: Branch[]): string[][] {
     return bs.map((it) => {
         const { isCurrent, name, upstream, track } = it
+        const prefix = isCurrent ? '★ ' : '  '
+        const branchName = isCurrent
+            ? color.yellow(`${prefix}${name}`)
+            : color.blue(`${prefix}${name}`)
+        const upstreamName = isEmpty(upstream)
+            ? color.overlay0('-')
+            : color.mauve(upstream)
+        const trackInfo = isEmpty(track) ? '' : trackParse(track)
 
-        return [
-            `${isCurrent ? color.yellow(name) : color.blue(name)}${isEmpty(upstream) ? '' : `\n${color.mauve(upstream)}`}`,
-            isEmpty(track) ? '' : `\n${trackParse(track)}`,
-        ]
+        return [branchName, upstreamName, trackInfo]
     })
 }
 
-function tableParse(arr: string[][][]) {
+function tableParse(arr: string[][][]): string[] {
+    const config = table.autoLayout({ columnRatios: [3, 3, 1] })
     return arr.map((it) => {
         return table.render(
-            [tableTitle(['Branch\nUpstream', 'Track']), ...it],
-            tableDefaultConfig
+            [tableTitle(['Branch', 'Upstream', 'Track']), ...it],
+            config
         )
     })
 }
