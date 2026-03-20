@@ -131,3 +131,25 @@ Required for LLM features:
 - `ALIAS_OLLAMA_BASE_URL` / `ALIAS_OLLAMA_DEFAULT_MODEL` - Ollama
 - `ALIAS_TYPE='"'"'ollama'"'"'` - Use Ollama instead of OpenAI
 - `EDITOR` - Preferred editor (defaults to '"'"'vi'"'"')
+
+## Git Workflow
+
+### Line Endings
+
+This project uses LF (Unix) line endings. Git may show warnings like:
+
+```
+warning: in the working copy of '...', LF will be replaced by CRLF the next time Git checks it out
+```
+
+**Important**: When checking `git diff`, use `--ignore-space-at-eol` to filter out line ending changes:
+
+```bash
+# Check for real changes only
+git diff --ignore-space-at-eol
+
+# If no real changes, restore the file
+git restore <file>
+```
+
+Do not commit files that only have line ending changes. These are local Git settings issues and should be reverted.
