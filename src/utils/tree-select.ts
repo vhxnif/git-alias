@@ -1,6 +1,7 @@
 import { createPrompt, useKeypress, useMemo, useState } from '@inquirer/core'
 import chalk from 'chalk'
 import { color } from './color-utils'
+import { exit } from './platform-utils'
 
 export type TreeNode<T> = {
   id: string
@@ -24,7 +25,6 @@ export type TreeSelectConfig<T> = {
 
 export type TreeSelectResult<T> =
   | { type: 'selected'; node: TreeNode<T> }
-  | { type: 'cancelled' }
 
 type FlatNode<T> = {
   node: TreeNode<T>
@@ -160,6 +160,24 @@ function flattenTree<T>(
   return result
 }
 
+function sortTreeNodes<T>(nodes: TreeNode<T>[]): TreeNode<T>[] {
+  const sortFn = (a: TreeNode<T>, b: TreeNode<T>) => {
+    const aIsFolder = !!a.children?.length
+    const bIsFolder = !!b.children?.length
+    if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1
+    return a.label.localeCompare(b.label)
+  }
+
+  return nodes
+    .map((node) => {
+      if (node.children?.length) {
+        return { ...node, children: sortTreeNodes(node.children) }
+      }
+      return node
+    })
+    .sort(sortFn)
+}
+
 function collectAllFolderIds<T>(nodes: TreeNode<T>[], ids: Set<string>): void {
   for (const node of nodes) {
     if (node.children && node.children.length > 0) {
@@ -248,10 +266,24 @@ function getVisibleRange(
   return { start, end }
 }
 
-function filterTreeNodes<T>(nodes: FlatNode<T>[], term: string): FlatNode<T>[] {
-  if (!term) return nodes
+function filterTreeNodes<T>(
+  nodes: FlatNode<T>[],
+  term: string
+): {
+  filtered: FlatNode<T>[]
+  matchedFolderIds: Set<string>
+} {
+  if (!term) return { filtered: nodes, matchedFolderIds: new Set() }
   const lower = term.toLowerCase()
-  return nodes.filter((fn) => fn.node.label.toLowerCase().includes(lower))
+  const matchedFolderIds = new Set<string>()
+  const filtered = nodes.filter((fn) => {
+    const isMatch = fn.node.label.toLowerCase().includes(lower)
+    if (isMatch && fn.node.children?.length) {
+      matchedFolderIds.add(fn.node.id)
+    }
+    return isMatch
+  })
+  return { filtered, matchedFolderIds }
 }
 
 export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
@@ -288,13 +320,14 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
     const [searchMode, setSearchMode] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
 
+    const sortedTree = useMemo(() => sortTreeNodes(tree), [tree])
     const flatNodes = useMemo(
-      () => flattenTree(tree, expandedIds),
-      [tree, expandedIds]
+      () => flattenTree(sortedTree, expandedIds),
+      [sortedTree, expandedIds]
     )
 
     if (flatNodes.length === 0) {
-      done({ type: 'cancelled' })
+      exit()
       return ''
     }
 
@@ -306,11 +339,35 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
       const isKey = (str: string) => key.name === str
 
       if (searchMode) {
+        if (isKey('q')) {
+          setQuit(true)
+          exit()
+          return
+        }
         if (isKey('escape')) {
           setSearchMode(false)
           setSearchTerm('')
         } else if (isKey('return')) {
+          const searchResult = filterTreeNodes(flatNodes, searchTerm)
+          const displayNodes = searchResult.filtered
+          const currentIdx = findNodeIndex(displayNodes, selectedId)
+          const currentNode = displayNodes[currentIdx]?.node
+          if (currentNode?.children?.length) {
+            const nextExpanded = new Set<string>(expandedIds)
+            nextExpanded.add(currentNode.id)
+            setExpandedIds(nextExpanded)
+            const sorted = sortTreeNodes(tree)
+            const expanded = flattenTree(sorted, nextExpanded)
+            const firstChild = expanded.find(
+              (fn) =>
+                fn.node.id !== currentNode.id && fn.depth > 0
+            )
+            if (firstChild) {
+              setSelectedId(firstChild.node.id)
+            }
+          }
           setSearchMode(false)
+          setSearchTerm('')
         } else if (isKey('backspace')) {
           setSearchTerm(searchTerm.slice(0, -1))
         } else if (key.name && key.name.length === 1 && !key.ctrl) {
@@ -321,7 +378,7 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
 
       if (isKey('q') || isKey('escape')) {
         setQuit(true)
-        done({ type: 'cancelled' })
+        exit()
         return
       }
 
@@ -372,9 +429,10 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
 
     const { green, surface2, yellow } = color
 
-    const displayNodes = searchMode
+    const searchResult = searchMode
       ? filterTreeNodes(flatNodes, searchTerm)
-      : flatNodes
+      : { filtered: flatNodes, matchedFolderIds: new Set<string>() }
+    const displayNodes = searchResult.filtered
 
     if (displayNodes.length === 0 && searchMode) {
       const { teal, blue } = color
@@ -400,7 +458,7 @@ export default createPrompt<TreeSelectResult<any>, TreeSelectConfig<any>>(
     )
     const visibleNodes = displayNodes.slice(start, end)
 
-    const treeLines = visibleNodes.map((flatNode) => {
+    const treeLines = visibleNodes.map((flatNode: FlatNode<any>) => {
       const isSelected = flatNode.node.id === selectedId
       return renderTreeLine(flatNode, isSelected, searchTerm)
     })
